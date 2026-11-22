@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070b07">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wasteland">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<title>WASTELAND: Real World — post-apocalyptic survival RPG</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="start">
+  <div class="startbox">
+    <pre class="logo">
+ ▄▄▌ ▐ ▄▌ ▄▄▄· .▄▄ · ▄▄▄▄▄▄▄▄ .▄▄▌   ▄▄▄·  ▐ ▄ ·▄▄▄▄
+ ██· █▌▐█▐█ ▀█ ▐█ ▀. •██  ▀▄.▀·██•  ▐█ ▀█ •█▌▐███▪ ██
+ ██▪▐█▐▐▌▄█▀▀█ ▄▀▀▀█▄ ▐█.▪▐▀▀▪▄██▪  ▄█▀▀█ ▐█▐▐▌▐█· ▐█▌
+ ▐█▌██▐█▌▐█ ▪▐▌▐█▄▪▐█ ▐█▌·▐█▄▄▌▐█▌▐▌▐█ ▪▐▌██▐█▌██. ██
+  ▀▀▀▀ ▀▪ ▀  ▀  ▀▀▀▀  ▀▀▀  ▀▀▀ .▀▀▀  ▀  ▀ ▀▀ █▪▀▀▀▀▀•</pre>
+    <div class="sub">REAL WORLD · post-apocalyptic survival RPG</div>
+    <p class="small muted">The bombs fell. The Zone spread. Your bunker door finally opens — onto the real streets of your city.</p>
+    <label>Name <input id="pname" value="Stalker" maxlength="20" autocomplete="off" autocapitalize="words"></label>
+    <div id="startpos" class="pos small"></div>
+    <div class="row"><input id="citySearch" type="search" enterkeyhint="search" autocomplete="off" placeholder="Search a city or address… (e.g. Kyiv, Berlin)"><button class="btn" onclick="searchCity()">Search</button><button class="btn" id="geoBtn" onclick="useGeo()">📍 My location</button><button class="btn" onclick="setStartPos(59.4370,24.7536,'Tallinn, Estonia')">Tallinn</button></div>
+    <div id="cityResults"></div>
+    <div class="row center"><button class="btn hot big" id="newBtn" onclick="startNew()">☢ NEW GAME</button><button class="btn big" id="continueBtn" onclick="if(loadGame())bootGame()">▶ CONTINUE</button></div>
+    <p class="tiny muted">Map data © OpenStreetMap contributors · Tiles © Esri / OpenTopoMap · Places via Overpass API · Geocoding via Nominatim/Photon</p>
+  </div>
+</div>
+<div id="game" style="display:none">
+  <div id="hud"></div>
+  <div id="main">
+    <div id="mapwrap">
+      <div id="map"></div>
+      <div id="scan"></div>
+      <div id="locpanel"></div>
+      <div id="ticker"></div>
+    </div>
+    <div id="side">
+      <div id="tabs">
+        <button data-t="map" class="mobonly" onclick="setTab('map')">MAP</button><button data-t="inv" onclick="setTab('inv')">INV</button><button data-t="craft" onclick="setTab('craft')">CRAFT</button><button data-t="char" onclick="setTab('char')">STAT</button><button data-t="skills" onclick="setTab('skills')">SKILL</button><button data-t="quests" onclick="setTab('quests')">QUEST</button><button data-t="log" onclick="setTab('log')">LOG</button><button data-t="menu" onclick="setTab('menu')">≡</button>
+      </div>
+      <div id="tabbody"></div>
+    </div>
+  </div>
+</div>
+<div id="modal"><div id="modalbox"></div></div>
+<div id="toasts"></div>
+<div class="scanlines"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="js/data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/world.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070b07">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wasteland">
+<meta name="format-detection" content="telephone=no">
+<title>WASTELAND: Real World — post-apocalyptic survival RPG</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root { --g: #5dff6a; --g2: #2fae3c; --bg: #070b07; --panel: rgba(8, 16, 9, 0.94); --line: #1f4a24; --night: 1; --amber: #ffb000; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; height: 100dvh; overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; touch-action: manipulation; background: var(--bg); color: var(--g); font-family: 'Share Tech Mono', 'VT323', ui-monospace, Consolas, monospace; font-size: 14px; overflow: hidden; }
+.scanlines { pointer-events: none; position: fixed; inset: 0; z-index: 9999; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); mix-blend-mode: multiply; }
+.muted { color: #6f9a72; } .small { font-size: 12px; } .tiny { font-size: 10px; } .pos { color: var(--g); } .neg { color: #ff5c5c; }
+.good { color: #8dff8d; } .bad { color: #ff7070; } .warn { color: var(--amber); } .sys { color: #6fc3ff; } .quest, .qtxt { color: #ffd84d; }
+.z-rad { color: #d4ff00; } .z-anomaly { color: #c084ff; } .z-mutant { color: #ff4d4d; } .z-raider { color: #ff9a3c; }
+h2 { font-family: 'VT323', monospace; font-size: 30px; margin: 0 0 8px; letter-spacing: 1px; text-shadow: 0 0 8px rgba(93,255,106,.6); }
+h3, h4 { margin: 10px 0 4px; font-weight: normal; letter-spacing: 1px; text-transform: uppercase; } h4 { color: var(--amber); font-size: 13px; }
+input, select { background: #020502; color: var(--g); border: 1px solid var(--g2); padding: 6px 8px; font-family: inherit; font-size: 14px; }
+.btn { background: #0b1a0d; color: var(--g); border: 1px solid var(--g2); padding: 5px 10px; font-family: inherit; font-size: 13px; cursor: pointer; text-transform: uppercase; letter-spacing: .5px; }
+@media (hover: hover) { .btn:hover:not([disabled]) { background: var(--g); color: #021; box-shadow: 0 0 10px var(--g); }
+.btn[disabled] { opacity: .35; cursor: default; } .btn.dim { border-color: #2a3d2c; color: #7fa882; } .btn.hot { border-color: var(--amber); color: var(--amber); }
+.btn.hot:hover { background: var(--amber); color: #210; box-shadow: 0 0 10px var(--amber); } }
+.btn:active:not([disabled]) { background: var(--g); color: #021; } .btn.hot:active:not([disabled]) { background: var(--amber); color: #210; } .btn.big { font-size: 18px; padding: 10px 22px; }
+.chip { background: none; border: 1px solid var(--line); color: #7fa882; font-family: inherit; padding: 2px 7px; margin: 0 3px 3px 0; cursor: pointer; text-transform: uppercase; font-size: 11px; }
+.chip.on { border-color: var(--g); color: var(--g); }
+.acts { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; align-items: center; } .acts.col { flex-direction: column; align-items: stretch; }
+/* start */
+#start { position: fixed; inset: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); -webkit-overflow-scrolling: touch; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #0d2410 0%, #020502 75%); z-index: 50; overflow: auto; }
+.startbox { width: min(760px, 96vw); border: 1px solid var(--g2); padding: 18px 22px; background: rgba(2,8,3,.85); box-shadow: 0 0 40px rgba(93,255,106,.15) inset, 0 0 30px rgba(0,0,0,.8); }
+.logo { color: var(--g); text-shadow: 0 0 8px var(--g); font-size: clamp(6px, 1.6vw, 13px); line-height: 1.05; margin: 0; overflow: hidden; }
+.sub { color: var(--amber); letter-spacing: 3px; margin: 6px 0 4px; }
+.startbox label { display: block; margin: 10px 0 4px; } .startbox .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; } .startbox .row input { flex: 1; min-width: 200px; }
+.row.center { justify-content: center; margin-top: 16px !important; }
+.cityopt { padding: 4px 6px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 12px; } @media (hover: hover) { .cityopt:hover { background: #10301a; } } .cityopt:active { background: #10301a; }
+/* layout */
+#game { position: fixed; inset: 0; height: 100vh; height: 100dvh; flex-direction: column; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+#hud { padding-top: max(6px, env(safe-area-inset-top)) !important; display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 6px 10px; border-bottom: 1px solid var(--g2); background: #040904; align-items: center; z-index: 5; }
+.stat { display: flex; align-items: center; gap: 4px; min-width: 120px; } .sl { width: 34px; font-size: 11px; color: #8fc493; } .sv { font-size: 11px; min-width: 42px; }
+.bar { flex: 1; height: 9px; border: 1px solid #234d28; background: #020502; min-width: 60px; } .bar i { display: block; height: 100%; background: var(--g); box-shadow: 0 0 6px var(--g); }
+.stat.hp .bar i { background: #ff4d4d; box-shadow: 0 0 6px #ff4d4d; } .stat.food .bar i { background: #ffa94d; box-shadow: none; } .stat.water .bar i { background: #4dabf7; box-shadow: none; }
+.stat.rad .bar i { background: #d4ff00; box-shadow: 0 0 6px #d4ff00; } .stat.ftg .bar i { background: #b197fc; box-shadow: none; } .stat.rep .bar i { background: var(--amber); box-shadow: none; }
+.hinfo { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; margin-left: auto; }
+#main { flex: 1; display: flex; min-height: 0; }
+#mapwrap { flex: 1; position: relative; min-width: 0; }
+#map { position: absolute; inset: 0; background: #050805; }
+#side { width: 390px; border-left: 1px solid var(--g2); display: flex; flex-direction: column; background: var(--panel); min-height: 0; }
+#tabs { display: flex; border-bottom: 1px solid var(--g2); } #tabs button { flex: 1; background: none; border: none; border-right: 1px solid var(--line); color: #6f9a72; font-family: inherit; padding: 8px 2px; cursor: pointer; font-size: 12px; }
+#tabs button.on { color: #021; background: var(--g); }
+#tabbody { flex: 1; overflow-y: auto; padding: 8px 10px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#tabbody::-webkit-scrollbar, .lootlist::-webkit-scrollbar, #modalbox::-webkit-scrollbar { width: 8px; } #tabbody::-webkit-scrollbar-thumb, #modalbox::-webkit-scrollbar-thumb, .lootlist::-webkit-scrollbar-thumb { background: var(--g2); }
+.irow { border: 1px solid var(--line); margin: 4px 0; padding: 5px 7px; background: rgba(0,0,0,.35); } .irow.eq { border-color: var(--g2); background: rgba(30,80,35,.25); }
+.irow.locked { opacity: .55; } .ihead { display: flex; justify-content: space-between; align-items: center; gap: 6px; cursor: pointer; }
+.idesc { margin-top: 5px; font-size: 12px; line-height: 1.45; color: #b9dcbb; } .pips { letter-spacing: 2px; color: var(--g2); font-size: 11px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; } .logl { font-size: 12px; padding: 2px 0; border-bottom: 1px dotted #143018; }
+#scan { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 800; background: var(--panel); border: 1px solid var(--amber); color: var(--amber); padding: 4px 12px; display: none; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .5; } }
+#locpanel { position: absolute; left: 10px; bottom: 10px; z-index: 650; /* above markers (600), below Leaflet popups (700) */ background: var(--panel); border: 1px solid var(--g2); padding: 8px 10px; max-width: min(560px, calc(100% - 20px)); box-shadow: 0 0 20px rgba(0,0,0,.7); }
+#locpanel.flash { box-shadow: 0 0 22px var(--g); } .lp-title { font-size: 16px; color: #d6ffd9; }
+#ticker { position: absolute; right: 10px; bottom: 10px; z-index: 790; width: min(380px, 40%); font-size: 11px; background: rgba(4,9,4,.8); border: 1px solid var(--line); padding: 4px 8px; pointer-events: none; }
+/* map */
+.leaflet-container { background: #050805; font-family: inherit; }
+.leaflet-tile-pane { filter: sepia(.45) hue-rotate(55deg) saturate(1.6) contrast(1.1) brightness(var(--night)); transition: filter 1s; }
+body.nofilter .leaflet-tile-pane { filter: brightness(var(--night)); }
+.leaflet-control-attribution { background: rgba(0,0,0,.7) !important; color: #6f9a72 !important; font-size: 9px; } .leaflet-control-attribution a { color: #8fc493 !important; }
+.leaflet-bar a { background: #0b1a0d !important; color: var(--g) !important; border-color: var(--g2) !important; }
+.loc-icon div { width: 100%; height: 100%; border-radius: 50%; border: 1.5px solid var(--c); color: var(--c); background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 0 6px var(--c); line-height: 1; }
+.loc-icon.settle div { border-radius: 4px; font-size: 16px; box-shadow: 0 0 12px var(--c); border-width: 2px; }
+.loc-icon.looted div { opacity: .4; box-shadow: none; } .loc-icon.unk div { --c: #7b8f7c !important; border-style: dashed; box-shadow: none; opacity: .8; }
+.loc-icon.quest div { animation: qpulse 1.2s infinite; border-color: #ffd84d; } @keyframes qpulse { 50% { box-shadow: 0 0 18px 4px #ffd84d; } }
+.pl-dot { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, var(--g) 22% 45%, rgba(93,255,106,.2) 50%); box-shadow: 0 0 14px 4px var(--g); animation: plp 1.6s infinite; }
+@keyframes plp { 50% { box-shadow: 0 0 22px 8px var(--g); } }
+.qz-icon div { width: 22px; height: 22px; border-radius: 50%; background: #ffd84d; color: #000; font-weight: bold; text-align: center; line-height: 22px; animation: qpulse 1.2s infinite; }
+.camp-icon div { font-size: 16px; filter: drop-shadow(0 0 6px orange); }
+path.zone { animation: zpulse 3s ease-in-out infinite; } path.zone-rad { filter: drop-shadow(0 0 8px #d4ff00); } path.zone-anomaly { filter: drop-shadow(0 0 10px #b266ff); }
+path.zone-mutant { filter: drop-shadow(0 0 6px #ff3b3b); } path.zone-raider { filter: drop-shadow(0 0 6px #ff8c1a); }
+@keyframes zpulse { 50% { opacity: .55; } }
+.term-pop .leaflet-popup-content-wrapper, .term-pop .leaflet-popup-tip { background: var(--panel); color: var(--g); border: 1px solid var(--g2); border-radius: 0; box-shadow: 0 0 16px rgba(0,0,0,.8); }
+.term-pop .leaflet-popup-content { margin: 10px 12px; font-family: 'Share Tech Mono', monospace; font-size: 13px; line-height: 1.5; } .term-pop a.leaflet-popup-close-button { color: var(--g); }
+.pop .btn { margin-top: 6px; }
+/* modal */
+#modal { position: fixed; inset: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: rgba(0,0,0,.6); z-index: 2000; display: none; align-items: center; justify-content: center; }
+#modal.show { display: flex; }
+#modalbox { width: min(560px, 96vw); max-height: 90vh; max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px); overscroll-behavior: contain; -webkit-overflow-scrolling: touch; overflow-y: auto; background: #050c06; border: 1px solid var(--g); box-shadow: 0 0 30px rgba(93,255,106,.25); padding: 16px 18px; }
+#modal.wide #modalbox { width: min(900px, 96vw); } #modal.combat #modalbox { border-color: #ff5c5c; box-shadow: 0 0 30px rgba(255,80,80,.3); } #modal.death #modalbox { border-color: #ff5c5c; text-align: center; }
+.lootlist { max-height: 55vh; overflow-y: auto; }
+.enemies { display: flex; flex-direction: column; gap: 5px; } .enemy { border: 1px solid #4a1f1f; padding: 5px 8px; cursor: pointer; } .enemy.tgt { border-color: #ff5c5c; box-shadow: 0 0 8px rgba(255,80,80,.4); } .enemy.dead { opacity: .3; text-decoration: line-through; }
+.you { margin: 8px 0; padding: 5px 8px; border: 1px solid var(--line); }
+.clog { font-size: 12px; max-height: 190px; overflow-y: auto; border-top: 1px solid var(--line); padding-top: 4px; } .clog div:first-child { color: #fff; }
+.trade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .trade > div { max-height: 58vh; overflow-y: auto; }
+.btn.perk { text-transform: none; text-align: left; padding: 8px 12px; }
+#toasts { position: fixed; top: calc(60px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 3000; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+.toast { background: #0b1a0d; border: 1px solid var(--g); padding: 6px 14px; box-shadow: 0 0 12px rgba(93,255,106,.4); transition: opacity .5s; } .toast.out { opacity: 0; }
+
+.leaflet-control-layers { background: var(--panel) !important; color: var(--g); border: 1px solid var(--g2) !important; border-radius: 0 !important; }
+.leaflet-control-layers-toggle { filter: invert(1) hue-rotate(90deg); }
+.leaflet-control-layers label { font-size: 12px; }
+
+.mobonly { display: none; }
+.lp-toggle { float: right; background: none; border: 1px solid var(--line); color: var(--g); font-family: inherit; margin-left: 8px; padding: 0 8px; cursor: pointer; }
+#locpanel.collapsed .lp-body { display: none; }
+.irow .tdesc { display: none; font-size: 12px; color: #b9dcbb; margin-top: 4px; } .irow.open .tdesc { display: block; }
+input, select, textarea { font-size: 16px; } /* >=16px prevents iOS auto-zoom */
+button, .btn, .chip, select { touch-action: manipulation; }
+#game, #hud, #tabs, #locpanel, .btn, .chip { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#map { touch-action: none; }
+/* coarse pointers (phones/tablets): big tap targets */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; padding: 8px 12px; font-size: 14px; }
+  .chip { min-height: 34px; padding: 4px 10px; font-size: 12px; }
+  .ihead { min-height: 36px; }
+  #tabs button { min-height: 48px; }
+  .term-pop .btn { width: 100%; }
+  .leaflet-touch .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; }
+  .term-pop .leaflet-popup-content { font-size: 14px; }
+}
+/* ===== Phone layout (portrait, and landscape phones) ===== */
+@media (max-width: 820px), (pointer: coarse) and (max-height: 520px) {
+  html, body { font-size: 14px; }
+  .mobonly { display: block; }
+  #main { flex-direction: column; position: relative; }
+  #hud { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px 6px; padding: 4px 6px; }
+  .stat { min-width: 0; display: grid; grid-template-columns: auto 1fr; grid-template-areas: "sl sv" "bar bar"; gap: 1px 3px; }
+  .stat .sl { grid-area: sl; width: auto; font-size: 10px; } .stat .sv { grid-area: sv; text-align: right; min-width: 0; font-size: 10px; } .stat .bar { grid-area: bar; min-width: 0; height: 7px; }
+  .hinfo { grid-column: 1 / -1; margin: 0; gap: 4px 10px; font-size: 11px; }
+  #side { width: 100%; height: auto; flex: none; border-left: none; border-top: 1px solid var(--g2); position: relative; z-index: 900; padding-bottom: env(safe-area-inset-bottom); background: #040904; }
+  #tabs { border-bottom: none; } #tabs button { font-size: 11px; padding: 0 1px; min-height: 46px; }
+  body:not(.sheet-open) #tabs button.on { background: none; color: #6f9a72; } body:not(.sheet-open) #tabs button[data-t="map"] { background: var(--g); color: #021; }
+  #tabbody { display: none; position: absolute; left: 0; right: 0; bottom: 100%; height: 62vh; height: 62dvh; background: rgba(5, 12, 6, 0.98); border-top: 2px solid var(--g2); box-shadow: 0 -10px 30px rgba(0,0,0,.8); padding: 10px 12px; }
+  body.sheet-open #tabbody { display: block; }
+  #ticker { display: none; }
+  #locpanel { left: 6px; right: 6px; bottom: 6px; max-width: none; max-height: 46%; overflow-y: auto; padding: 6px 8px; overscroll-behavior: contain; }
+  #locpanel .acts { gap: 4px; } #locpanel .btn { flex: 1 1 auto; }
+  .leaflet-control-layers { margin-top: 6px !important; }
+  #modal { align-items: flex-end; }
+  #modalbox, #modal.wide #modalbox { width: 100%; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); border-left: none; border-right: none; }
+  h2 { font-size: 26px; }
+  .trade { grid-template-columns: 1fr; } .trade > div { max-height: none; }
+  .startbox { padding: 12px; width: 100%; border: none; } .startbox .row input { min-width: 0; flex: 1 1 100%; } .startbox .row .btn { flex: 1 1 auto; }
+  .btn.big { font-size: 16px; padding: 12px 16px; flex: 1 1 auto; }
+  .grid2 { grid-template-columns: 1fr 1fr; }
+}
+@media (pointer: coarse) and (max-height: 520px) {
+  #tabbody { height: 72dvh; }
+  /* landscape phone: location panel becomes a slim right-hand column so the map stays usable */
+  #locpanel { left: auto; right: 6px; top: 6px; bottom: 6px; width: min(300px, 42%); max-height: none; }
+  #locpanel.collapsed { bottom: auto; }
+  #locpanel .btn { min-height: 38px; padding: 6px 8px; font-size: 12px; flex: 1 1 45%; }
+  .leaflet-top.leaflet-right { right: min(306px, 43%); }
+  .hinfo { font-size: 10px; }
+  #tabs button { min-height: 40px; }
+}
+
+</style>
+</head>
+<body>
+<div id="start">
+  <div class="startbox">
+    <pre class="logo">
+ ▄▄▌ ▐ ▄▌ ▄▄▄· .▄▄ · ▄▄▄▄▄▄▄▄ .▄▄▌   ▄▄▄·  ▐ ▄ ·▄▄▄▄
+ ██· █▌▐█▐█ ▀█ ▐█ ▀. •██  ▀▄.▀·██•  ▐█ ▀█ •█▌▐███▪ ██
+ ██▪▐█▐▐▌▄█▀▀█ ▄▀▀▀█▄ ▐█.▪▐▀▀▪▄██▪  ▄█▀▀█ ▐█▐▐▌▐█· ▐█▌
+ ▐█▌██▐█▌▐█ ▪▐▌▐█▄▪▐█ ▐█▌·▐█▄▄▌▐█▌▐▌▐█ ▪▐▌██▐█▌██. ██
+  ▀▀▀▀ ▀▪ ▀  ▀  ▀▀▀▀  ▀▀▀  ▀▀▀ .▀▀▀  ▀  ▀ ▀▀ █▪▀▀▀▀▀•</pre>
+    <div class="sub">REAL WORLD · post-apocalyptic survival RPG</div>
+    <p class="small muted">The bombs fell. The Zone spread. Your bunker door finally opens — onto the real streets of your city.</p>
+    <label>Name <input id="pname" value="Stalker" maxlength="20" autocomplete="off" autocapitalize="words"></label>
+    <div id="startpos" class="pos small"></div>
+    <div class="row"><input id="citySearch" type="search" enterkeyhint="search" autocomplete="off" placeholder="Search a city or address… (e.g. Kyiv, Berlin)"><button class="btn" onclick="searchCity()">Search</button><button class="btn" id="geoBtn" onclick="useGeo()">📍 My location</button><button class="btn" onclick="setStartPos(59.4370,24.7536,'Tallinn, Estonia')">Tallinn</button></div>
+    <div id="cityResults"></div>
+    <div class="row center"><button class="btn hot big" id="newBtn" onclick="startNew()">☢ NEW GAME</button><button class="btn big" id="continueBtn" onclick="if(loadGame())bootGame()">▶ CONTINUE</button></div>
+    <p class="tiny muted">Map data © OpenStreetMap contributors · Tiles © Esri / OpenTopoMap · Places via Overpass API · Geocoding via Nominatim/Photon</p>
+  </div>
+</div>
+<div id="game" style="display:none">
+  <div id="hud"></div>
+  <div id="main">
+    <div id="mapwrap">
+      <div id="map"></div>
+      <div id="scan"></div>
+      <div id="locpanel"></div>
+      <div id="ticker"></div>
+    </div>
+    <div id="side">
+      <div id="tabs">
+        <button data-t="map" class="mobonly" onclick="setTab('map')">MAP</button><button data-t="inv" onclick="setTab('inv')">INV</button><button data-t="craft" onclick="setTab('craft')">CRAFT</button><button data-t="char" onclick="setTab('char')">STAT</button><button data-t="skills" onclick="setTab('skills')">SKILL</button><button data-t="quests" onclick="setTab('quests')">QUEST</button><button data-t="log" onclick="setTab('log')">LOG</button><button data-t="menu" onclick="setTab('menu')">≡</button>
+      </div>
+      <div id="tabbody"></div>
+    </div>
+  </div>
+</div>
+<div id="modal"><div id="modalbox"></div></div>
+<div id="toasts"></div>
+<div class="scanlines"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>window.WL_SINGLE = true;</script>
+<script>
+/* ===== WASTELAND: ZONE OF REAL WORLD — static game data ===== */
+'use strict';
+const D = {};
+
+D.RARITY = [
+  { id: 0, name: 'Common',    color: '#b8c4b0', mult: 1.00, affixes: 0, w: 60 },
+  { id: 1, name: 'Uncommon',  color: '#5dff6a', mult: 1.12, affixes: 1, w: 25 },
+  { id: 2, name: 'Rare',      color: '#4fb3ff', mult: 1.25, affixes: 2, w: 10 },
+  { id: 3, name: 'Epic',      color: '#c77dff', mult: 1.45, affixes: 3, w: 4 },
+  { id: 4, name: 'Legendary', color: '#ffa630', mult: 1.75, affixes: 4, w: 1 },
+];
+
+/* ---- Components (stackable crafting materials) ---- */
+D.COMP = {
+  scrap: ['Scrap Metal', 0.5, 3], cloth: ['Cloth', 0.2, 2], electronics: ['Electronics', 0.3, 8], chemicals: ['Chemicals', 0.3, 7],
+  wood: ['Wood', 0.8, 1], tape: ['Duct Tape', 0.1, 6], glue: ['Glue', 0.2, 6], screws: ['Screws', 0.1, 3],
+  gunpowder: ['Gunpowder', 0.1, 6], plastic: ['Plastic', 0.2, 2], leather: ['Leather', 0.4, 5], glass: ['Glass', 0.3, 2],
+  springs: ['Springs', 0.1, 4], circuit: ['Circuit Board', 0.2, 14], fuel: ['Fuel', 1.0, 8], hide: ['Mutant Hide', 0.8, 9],
+  lead: ['Lead', 0.8, 6], copper: ['Copper Wire', 0.2, 5], herbs: ['Zone Herbs', 0.1, 4], fiber: ['Fiberglass', 0.3, 7],
+};
+
+/* ---- Base items. cat: melee ranged armor food drink med chem ammo junk comp tool artifact schematic book quest ---- */
+D.ITEMS = {};
+function defItem(id, o) { o.id = id; D.ITEMS[id] = o; }
+for (const k in D.COMP) { const c = D.COMP[k]; defItem(k, { name: c[0], cat: 'comp', w: c[1], v: c[2], tags: ['comp'], stack: true }); }
+// tag hints per component (for loot tables)
+['electronics','circuit','copper'].forEach(k => D.ITEMS[k].tags.push('elec'));
+['chemicals','fuel','gunpowder'].forEach(k => D.ITEMS[k].tags.push('chem'));
+['cloth','leather'].forEach(k => D.ITEMS[k].tags.push('cloth'));
+['scrap','screws','springs','tape','glue','lead','wood','fiber','plastic','glass'].forEach(k => D.ITEMS[k].tags.push('hard'));
+D.ITEMS.herbs.tags.push('nature'); D.ITEMS.hide.tags.push('mutant'); D.ITEMS.wood.tags.push('nature');
+
+// Junk: scrap -> components
+const J = (id, name, w, v, scrap, tags) => defItem(id, { name, cat: 'junk', w, v, scrap, tags: ['junk', ...(tags || [])], stack: true });
+J('radio', 'Broken Radio', 1.5, 6, { electronics: 2, screws: 1 }, ['elec']);
+J('tincan', 'Tin Can', 0.2, 1, { scrap: 1 });
+J('toaster', 'Old Toaster', 2, 5, { scrap: 2, springs: 1, copper: 1 }, ['home']);
+J('fan', 'Desk Fan', 2, 5, { copper: 1, screws: 1, plastic: 1 }, ['home']);
+J('phone', 'Cracked Smartphone', 0.3, 9, { circuit: 1, glass: 1, electronics: 1 }, ['elec']);
+J('teddy', 'Teddy Bear', 0.4, 2, { cloth: 2 }, ['home']);
+J('bottle', 'Empty Bottle', 0.4, 1, { glass: 1 }, ['home', 'food']);
+J('carbatt', 'Car Battery', 6, 12, { lead: 2, chemicals: 1, copper: 1 }, ['car']);
+J('typewriter', 'Typewriter', 5, 8, { springs: 2, screws: 2, scrap: 1 }, ['office']);
+J('clock', 'Pre-War Clock', 1, 6, { springs: 1, glass: 1, screws: 1 }, ['home']);
+J('wrench', 'Rusty Wrench', 1.5, 4, { scrap: 2 }, ['tools']);
+J('rope', 'Frayed Rope', 0.5, 2, { cloth: 1 });
+J('plank', 'Plank', 2, 1, { wood: 2 }, ['nature']);
+J('pipe', 'Steel Pipe', 2, 3, { scrap: 2 }, ['tools']);
+J('extinguisher', 'Fire Extinguisher', 4, 6, { scrap: 2, chemicals: 1 }, ['tools']);
+J('filter', 'Gas Mask Filter', 0.3, 7, { chemicals: 1, cloth: 1 }, ['mil']);
+J('bulb', 'Light Bulb', 0.1, 2, { glass: 1, copper: 1 }, ['home', 'elec']);
+J('toycar', 'Toy Car', 0.3, 2, { plastic: 1, screws: 1 }, ['home']);
+J('laptop', 'Dead Laptop', 2.5, 18, { circuit: 2, electronics: 2, plastic: 1 }, ['elec', 'office']);
+J('microscope', 'Microscope', 3, 15, { glass: 2, screws: 1, scrap: 1 }, ['med', 'science']);
+J('sparkplug', 'Spark Plugs', 0.3, 4, { copper: 1, scrap: 1 }, ['car']);
+J('tire', 'Old Tire', 7, 2, { plastic: 2 }, ['car']);
+J('hubcap', 'Hubcap', 1, 2, { scrap: 2 }, ['car']);
+J('syringe', 'Used Syringes', 0.1, 2, { plastic: 1, glass: 1 }, ['med']);
+J('textbook', 'Water-Damaged Textbook', 1, 1, { cloth: 1 }, ['office']);
+J('stapler', 'Stapler', 0.4, 2, { springs: 1, scrap: 1 }, ['office']);
+J('fishtank', 'Cracked Fish Tank', 4, 2, { glass: 3 }, ['home']);
+J('drill', 'Broken Power Drill', 2, 10, { electronics: 1, copper: 1, scrap: 1, screws: 1 }, ['tools']);
+J('tvset', 'CRT Television', 9, 9, { electronics: 2, glass: 2, circuit: 1, lead: 1 }, ['elec', 'home']);
+J('flare', 'Burnt Flare', 0.2, 1, { gunpowder: 1 }, ['mil']);
+J('casing', 'Brass Casings', 0.2, 3, { scrap: 1, gunpowder: 1 }, ['mil']);
+J('bones', 'Bones', 1, 1, { glue: 1 }, ['mutant']);
+J('fertilizer', 'Bag of Fertilizer', 3, 4, { chemicals: 2 }, ['nature', 'chem']);
+J('detergent', 'Detergent', 1, 4, { chemicals: 1, plastic: 1 }, ['home', 'chem']);
+J('jacket_old', 'Moth-eaten Coat', 1.5, 2, { cloth: 3 }, ['cloth']);
+// Valuables
+const V = (id, name, w, v, scrap) => defItem(id, { name, cat: 'junk', w, v, scrap, tags: ['junk', 'valuable'], stack: true });
+V('goldwatch', 'Gold Watch', 0.2, 60, { springs: 1, copper: 1 });
+V('ring', 'Wedding Ring', 0.05, 45, { copper: 1 });
+V('cash', 'Bundle of Pre-War Cash', 0.1, 15, { cloth: 1 });
+V('silverware', 'Silverware Set', 1, 30, { scrap: 2 });
+V('jewelbox', 'Jewelry Box', 0.8, 75, { wood: 1, copper: 1 });
+V('icon', 'Gilded Icon', 0.6, 55, { wood: 1 });
+V('goldbar', 'Gold Bar', 1, 250, { lead: 1 });
+
+// Food & drink: hunger/thirst restore, rad, hp, fatigue
+const F = (id, name, cat, w, v, eff, tags) => defItem(id, { name, cat, w, v, eff, tags: [cat, ...(tags || [])], stack: true });
+F('beans', 'Canned Beans', 'food', 0.5, 6, { food: 25, rad: 1 });
+F('tourist', "Tourist's Breakfast", 'food', 0.4, 8, { food: 30 });
+F('bread', 'Stale Bread', 'food', 0.3, 3, { food: 15 });
+F('noodles', 'Instant Noodles', 'food', 0.2, 4, { food: 20, water: -5 });
+F('mre', 'Military MRE', 'food', 0.7, 18, { food: 45, hp: 5 }, ['mil']);
+F('choco', 'Chocolate Bar', 'food', 0.1, 5, { food: 10, fatigue: -5 });
+F('rawmeat', 'Raw Mutant Meat', 'food', 0.6, 3, { food: 15, rad: 8, hp: -3 }, ['mutant']);
+F('steak', 'Mutant Steak', 'food', 0.5, 12, { food: 35, rad: 2, hp: 5 });
+F('jerky', 'Mutant Jerky', 'food', 0.2, 10, { food: 25, water: -5 });
+F('sausage', 'Smoked Sausage', 'food', 0.3, 9, { food: 22 });
+F('apples', 'Wrinkled Apples', 'food', 0.3, 3, { food: 10, water: 5, rad: 1 }, ['nature']);
+F('soup', 'Zone Herb Stew', 'food', 0.6, 16, { food: 40, water: 10, hp: 10 });
+F('crisps', 'Pre-War Crisps', 'food', 0.1, 4, { food: 12, water: -3 });
+F('honey', 'Jar of Honey', 'food', 0.5, 14, { food: 20, hp: 8 });
+F('water', 'Clean Water', 'drink', 0.5, 6, { water: 35 });
+F('dirtywater', 'Dirty Water', 'drink', 0.5, 1, { water: 25, rad: 6 });
+F('purewater', 'Boiled Water', 'drink', 0.5, 5, { water: 30 });
+F('cola', 'Fizz Cola', 'drink', 0.4, 7, { water: 20, food: 5 });
+F('energy', 'Non-Stop Energy Drink', 'drink', 0.3, 10, { water: 10, fatigue: -25 });
+F('vodka', 'Cossack Vodka', 'drink', 0.6, 12, { water: 5, rad: -15, fatigue: 10 });
+F('tea', 'Herbal Tea', 'drink', 0.4, 9, { water: 30, fatigue: -10, hp: 5 });
+F('beer', 'Flat Beer', 'drink', 0.5, 4, { water: 15, fatigue: 5 });
+F('juice', 'Boxed Juice', 'drink', 0.3, 5, { water: 22, food: 3 });
+// Meds
+F('bandage', 'Bandage', 'med', 0.1, 6, { hp: 15, bleed: true });
+F('firstaid', 'First Aid Kit', 'med', 0.4, 20, { hp: 40, bleed: true });
+F('armymed', 'Army Medkit', 'med', 0.5, 45, { hp: 70, bleed: true }, ['mil']);
+F('stimpak', 'Stimpak', 'med', 0.1, 40, { hp: 50 });
+F('antirad', 'Anti-Rad Pills', 'med', 0.1, 25, { rad: -40 });
+F('radaway', 'RadAway', 'med', 0.3, 50, { rad: -75, water: -10 });
+F('painkiller', 'Painkillers', 'med', 0.1, 12, { hp: 10, buff: ['armor', 10, 120] });
+F('antibio', 'Antibiotics', 'med', 0.1, 18, { hp: 25 });
+F('sciencemed', 'Scientific Medkit', 'med', 0.4, 60, { hp: 50, rad: -30, bleed: true }, ['science']);
+// Chems (buffs)
+F('jet', 'Jet Inhaler', 'chem', 0.1, 25, { buff: ['crit', 15, 180], fatigue: -15 });
+F('buffout', 'Buffout', 'chem', 0.1, 25, { buff: ['dmg', 25, 180] });
+F('radx', 'Rad-X', 'chem', 0.1, 20, { buff: ['radRes', 40, 360] });
+F('psyblock', 'Psy-Block', 'chem', 0.1, 30, { buff: ['anomRes', 50, 360] });
+F('mentats', 'Mentats', 'chem', 0.1, 30, { buff: ['acc', 15, 180] });
+// Throwables (combat only)
+F('grenade', 'RGD-5 Grenade', 'throw', 0.4, 30, { dmg: [30, 50] }, ['mil']);
+F('molotov', 'Molotov Cocktail', 'throw', 0.6, 15, { dmg: [18, 30], burn: true });
+F('pipebomb', 'Pipe Bomb', 'throw', 0.8, 22, { dmg: [25, 45] });
+
+// Ammo
+const A = (id, name, v) => defItem(id, { name, cat: 'ammo', w: 0.01, v, tags: ['ammo'], stack: true });
+A('ammo9', '9mm Rounds', 1); A('ammo545', '5.45mm Rounds', 2); A('ammo762', '7.62mm Rounds', 3);
+A('shells', '12ga Shells', 2); A('bolts', 'Crossbow Bolts', 1); A('cells', 'Energy Cells', 4);
+
+// Melee weapons
+const M = (id, name, dmg, acc, crit, w, v, dur, tags, extra) => defItem(id, Object.assign({ name, cat: 'melee', dmg, acc, crit, w, v, dur, tags: ['weapon', 'melee', ...(tags || [])] }, extra || {}));
+M('knife', 'Kitchen Knife', [3, 6], 85, 8, 0.5, 8, 60, ['home']);
+M('combatknife', 'Combat Knife', [5, 9], 88, 12, 0.6, 30, 120, ['mil']);
+M('machete', 'Machete', [7, 12], 80, 8, 1.2, 35, 100, ['tools']);
+M('crowbar', 'Crowbar', [6, 11], 78, 5, 2.2, 20, 150, ['tools']);
+M('bat', 'Baseball Bat', [6, 10], 80, 5, 1.5, 15, 90, ['home']);
+M('fireaxe', 'Fire Axe', [10, 17], 72, 10, 3, 45, 120, ['tools']);
+M('sledge', 'Sledgehammer', [14, 22], 62, 6, 6, 55, 160, ['tools']);
+M('leadpipe', 'Lead Pipe', [5, 9], 78, 4, 2, 10, 120, ['tools']);
+M('spikedclub', 'Spiked Club', [7, 12], 76, 8, 2, 18, 70, []);
+M('knuckles', 'Brass Knuckles', [4, 8], 92, 10, 0.3, 20, 200, []);
+M('rebarspear', 'Rebar Spear', [8, 14], 74, 9, 2.5, 22, 80, []);
+M('baton', 'Police Baton', [5, 9], 84, 5, 1, 18, 140, ['police']);
+M('katana', 'Collector Katana', [12, 20], 82, 15, 1.8, 120, 120, ['valuable']);
+M('shockbaton', 'Shock Baton', [9, 14], 84, 6, 1.4, 90, 100, ['police', 'elec'], { elem: 'shock' });
+// Ranged
+const R = (id, name, dmg, acc, crit, w, v, dur, ammo, tags, extra) => defItem(id, Object.assign({ name, cat: 'ranged', dmg, acc, crit, w, v, dur, ammo, tags: ['weapon', 'ranged', ...(tags || [])] }, extra || {}));
+R('pipepistol', 'Pipe Pistol', [6, 10], 62, 5, 1.5, 20, 60, 'ammo9', []);
+R('pm', 'PM Pistol', [8, 12], 74, 7, 1, 50, 140, 'ammo9', ['police', 'mil']);
+R('revolver', 'Old Revolver', [10, 15], 70, 10, 1.3, 60, 120, 'ammo9', ['home']);
+R('smg', 'Viper SMG', [12, 18], 66, 6, 2.5, 120, 120, 'ammo9', ['police', 'mil'], { burst: 2 });
+R('sawedoff', 'Sawed-off Shotgun', [16, 26], 60, 6, 2.5, 70, 90, 'shells', ['home']);
+R('pumpgun', 'Pump Shotgun', [18, 28], 68, 6, 3.5, 110, 130, 'shells', ['police']);
+R('hunting', 'Hunting Rifle', [18, 26], 80, 15, 3.8, 130, 130, 'ammo762', ['nature']);
+R('ak74', 'AK-74', [16, 24], 72, 8, 3.6, 200, 160, 'ammo545', ['mil'], { burst: 2 });
+R('sks', 'SKS Carbine', [18, 25], 78, 10, 3.9, 160, 150, 'ammo762', ['mil']);
+R('svd', 'SVD Sniper Rifle', [28, 40], 85, 22, 4.5, 380, 140, 'ammo762', ['mil']);
+R('crossbow', 'Crossbow', [14, 20], 78, 14, 3, 80, 100, 'bolts', ['nature']);
+R('laserpistol', 'Laser Pistol', [15, 22], 85, 10, 1.5, 260, 120, 'cells', ['science'], { elem: 'fire' });
+R('gauss', 'Gauss Rifle', [45, 65], 88, 20, 6, 900, 160, 'cells', ['science'], { elem: 'shock' });
+R('nailgun', 'Modified Nailgun', [8, 13], 70, 6, 2, 40, 80, 'bolts', ['tools']);
+
+// Armor: armor, radRes, anomRes, stealth, carry
+const AR = (id, name, armor, radRes, anomRes, w, v, dur, tags, extra) => defItem(id, Object.assign({ name, cat: 'armor', armor, radRes, anomRes, w, v, dur, tags: ['armor', ...(tags || [])] }, extra || {}));
+AR('hoodie', 'Padded Hoodie', 3, 5, 0, 1.5, 10, 60, ['cloth', 'home']);
+AR('leatherjkt', 'Leather Jacket', 6, 5, 0, 3, 30, 100, ['cloth']);
+AR('scraparmor', 'Scrap Armor', 12, 5, 0, 9, 45, 140, []);
+AR('policevest', 'Police Vest', 14, 0, 0, 4, 80, 140, ['police']);
+AR('stalkersuit', 'Stalker Suit', 12, 20, 15, 5, 140, 150, ['mil']);
+AR('military', 'Military Armor', 22, 15, 5, 9, 260, 200, ['mil']);
+AR('hazmat', 'Hazmat Suit', 4, 60, 25, 4, 160, 80, ['science', 'med']);
+AR('seva', 'SEVA Scientific Suit', 15, 50, 45, 6, 420, 160, ['science']);
+AR('exo', 'Exoskeleton', 32, 25, 15, 15, 1200, 250, ['mil'], { carry: 50 });
+AR('raiderspikes', 'Raider Spike Armor', 10, 0, 0, 6, 35, 100, []);
+AR('firesuit', 'Firefighter Suit', 9, 15, 20, 5, 70, 120, ['tools']);
+AR('ghillie', 'Ghillie Suit', 4, 5, 5, 3, 90, 80, ['nature'], { stealth: 25 });
+AR('hidecloak', 'Mutant Hide Cloak', 9, 10, 10, 4, 60, 110, ['mutant'], { stealth: 10 });
+AR('combatarmor', 'Combat Armor', 26, 20, 10, 10, 500, 220, ['mil']);
+
+// Tools (passive while carried, or usable)
+const T = (id, name, w, v, desc, tags, extra) => defItem(id, Object.assign({ name, cat: 'tool', w, v, desc, tags: ['tool', ...(tags || [])], stack: true }, extra || {}));
+T('repairkit', 'Repair Kit', 0.8, 30, 'Use: restores 50 durability to equipped weapon & armor.', ['tools']);
+T('lockpick', 'Lockpick Set', 0.2, 20, 'Passive: +1 loot roll when searching.', ['police', 'tools']);
+T('geiger', 'Geiger Counter', 0.6, 40, 'Passive: -15% radiation taken; warns of radiation.', ['science', 'mil']);
+T('detector', 'Echo Anomaly Detector', 0.6, 80, 'Passive: +25% artifact find chance in anomalies.', ['science']);
+T('sleepbag', 'Sleeping Bag', 2, 25, 'Passive: safer and better rest in the wild.', ['nature', 'cloth']);
+T('matches', 'Matches', 0.05, 3, 'Needed with wood to make a campfire.', ['home']);
+T('waterfilter', 'Water Filter', 0.8, 30, 'Passive: dirty water gives no radiation.', ['tools']);
+T('backpack', 'Tourist Backpack', 1.5, 45, 'Passive: +20 carry capacity (one only).', ['nature', 'cloth']);
+T('modkit', 'Weapon Mod Kit', 0.5, 50, 'Use: adds a random mod (affix) to equipped weapon.', ['tools']);
+T('plating', 'Armor Plating', 2, 50, 'Use: +4 armor to equipped armor permanently.', ['tools']);
+T('compass', 'Old Compass', 0.2, 15, 'Passive: +8% travel speed.', ['nature']);
+
+// Skill books
+const B = (id, name, skill, v) => defItem(id, { name, cat: 'book', w: 0.5, v, skill, tags: ['book', 'office'], stack: true });
+B('bk_combat', 'Guns & Bullets Magazine', 'combat', 60); B('bk_survival', 'Wasteland Survival Guide', 'survival', 60);
+B('bk_scav', "Scavenger's Almanac", 'scavenging', 60); B('bk_craft', "Tinker's Weekly", 'crafting', 60);
+B('bk_med', 'Field Medicine Handbook', 'medicine', 60); B('bk_barter', 'Art of the Deal (Wasteland Ed.)', 'barter', 60);
+B('bk_science', 'Notes on Anomalous Fields', 'science', 60);
+
+// Artifacts
+const AF = (id, name, mods, glyph) => defItem(id, { name, cat: 'artifact', w: 0.5, v: 0, mods, tags: ['artifact'] });
+AF('jellyfish', 'Jellyfish', { radRes: 15, radEmit: 1 });
+AF('stoneflower', 'Stone Flower', { armor: 4, anomRes: 10, radEmit: 1 });
+AF('moonlight', 'Moonlight', { stealth: 15, radEmit: 1 });
+AF('fireball', 'Fireball', { anomRes: 25, thirst: 20 });
+AF('battery', 'Battery', { speed: 15, radEmit: 2 });
+AF('meatchunk', 'Meat Chunk', { regen: 2, radEmit: 2 });
+AF('nightstar', 'Night Star', { stealth: 20, carry: 5, radEmit: 2 });
+AF('gravi', 'Gravi', { carry: 20, radEmit: 2 });
+AF('goldfish', 'Goldfish', { carry: 35, radEmit: 3 });
+AF('crystal', 'Crystal', { radRes: 25, anomRes: 15, radEmit: 1 });
+AF('kolobok', 'Kolobok', { regen: 4, radEmit: 3 });
+AF('bubble', 'Bubble', { radRes: 40, carry: -5 });
+AF('spring', 'Spring', { armor: 6, speed: 5, radEmit: 1 });
+AF('slime', 'Slime', { regen: 1, armor: 2, radEmit: 1 });
+AF('thorn', 'Thorn', { dmg: 15, regen: -1 });
+AF('flash', 'Flash', { acc: 10, anomRes: 10, radEmit: 1 });
+AF('soul', 'Soul', { regen: 3, maxhp: 10, radEmit: 3 });
+AF('compassart', 'Compass Artifact', { speed: 20, loot: 10, radEmit: 3 });
+AF('eye', 'Eye', { loot: 25, crit: 5, radEmit: 2 });
+AF('mamasbeads', "Mama's Beads", { maxhp: 25, regen: 1, radEmit: 4 });
+
+// Schematics (teach a recipe)
+D.SCHEMATICS = ['r_laser', 'r_cells', 'r_gauss', 'r_combatarmor', 'r_grenade', 'r_seva', 'r_svd', 'r_smg', 'r_sciencemed', 'r_pipebomb', 'r_shockbaton', 'r_exo', 'r_detector', 'r_radaway'];
+
+D.MOD_NAMES = { dmg: '% damage', acc: ' accuracy', crit: '% crit', armor: ' armor', radRes: '% rad resist', anomRes: '% anomaly resist',
+  stealth: ' stealth', carry: ' carry', regen: ' HP regen/h', speed: '% travel speed', loot: '% loot luck', maxhp: ' max HP',
+  radEmit: ' rad emission/h', thirst: '% thirst rate', hunger: '% hunger rate', lifesteal: '% lifesteal', bleed: '% bleed chance',
+  burn: '% burn chance', radDmg: ' rad damage', durab: '% durability', weight: '% weight', value: '% value', fear: '% intimidate' };
+D.NEG_MODS = { radEmit: 1, thirst: 1, hunger: 1 }; // positive numbers are BAD for these
+
+/* ---- Affixes ---- */
+// [name, mods, weight]
+D.WPN_PREFIX = [
+  ['Rusty', { dmg: -15, durab: -30, value: -40 }, 8], ['Sturdy', { durab: 50 }, 6], ['Serrated', { bleed: 25 }, 5], ['Scoped', { acc: 10 }, 5],
+  ['Irradiated', { radDmg: 6 }, 4], ['Balanced', { acc: 6, crit: 3 }, 5], ['Heavy', { dmg: 20, acc: -6, weight: 30 }, 5], ['Lightweight', { weight: -40 }, 5],
+  ['Makeshift', { dmg: -8, value: -30 }, 6], ['Military', { dmg: 12, durab: 25 }, 3], ['Pre-War', { dmg: 8, acc: 5, value: 40 }, 3], ['Bone-Carved', { bleed: 15, crit: 4 }, 3],
+  ['Electrified', { burn: 0, radDmg: 0, dmg: 15 }, 3], ['Incendiary', { burn: 30 }, 3], ['Silenced', { stealth: 10, crit: 5 }, 4], ['Vicious', { dmg: 18 }, 3],
+  ['Precise', { acc: 12, crit: 6 }, 2], ['Jury-Rigged', { dmg: 10, durab: -40 }, 5], ['Polished', { value: 60, acc: 3 }, 4], ['Cursed', { dmg: 30, regen: -1 }, 2],
+  ['Zone-Touched', { radDmg: 4, crit: 5 }, 2], ['Reinforced', { durab: 80, weight: 15 }, 4], ['Tactical', { acc: 8, dmg: 6 }, 3], ['Bloodthirsty', { lifesteal: 8 }, 2],
+];
+D.WPN_SUFFIX = [
+  ['of the Wastes', { dmg: 8 }, 6], ['of Ruin', { dmg: 14, durab: -20 }, 4], ['of the Zone', { anomRes: 10, crit: 4 }, 3], ['of Fortune', { loot: 12 }, 4],
+  ['of the Leech', { lifesteal: 10 }, 2], ['of the Stalker', { stealth: 10, acc: 5 }, 4], ['of Fury', { crit: 10 }, 3], ['of Precision', { acc: 12 }, 4],
+  ['of Bleeding', { bleed: 30 }, 3], ['of Embers', { burn: 25 }, 3], ['of the Glow', { radDmg: 8, radEmit: 1 }, 3], ['of Terror', { fear: 15 }, 3],
+  ['of the Hunter', { dmg: 10, acc: 4 }, 4], ['of Endurance', { durab: 60 }, 4], ['of the Duelist', { crit: 6, acc: 6 }, 3], ['of the Butcher', { bleed: 20, dmg: 6 }, 3],
+  ['of Last Breath', { lifesteal: 6, crit: 6 }, 1], ['of the Old World', { value: 80, dmg: 5 }, 2],
+];
+D.ARM_PREFIX = [
+  ['Tattered', { armor: -3, value: -40 }, 7], ['Padded', { armor: 3 }, 6], ['Reinforced', { armor: 6, weight: 20 }, 5], ['Lead-Lined', { radRes: 20, weight: 25 }, 4],
+  ['Camouflaged', { stealth: 12 }, 4], ['Insulated', { anomRes: 15 }, 4], ['Lightweight', { weight: -35 }, 5], ['Military', { armor: 8, durab: 30 }, 3],
+  ['Patched', { durab: -20, armor: 1 }, 6], ['Pre-War', { armor: 4, radRes: 8, value: 40 }, 3], ['Hide-Wrapped', { armor: 4, stealth: 5 }, 4], ['Rubberized', { anomRes: 20, radRes: 5 }, 3],
+  ['Spiked', { fear: 10, armor: 2 }, 4], ['Sealed', { radRes: 15, anomRes: 10 }, 3], ['Ergonomic', { carry: 10 }, 4], ['Scavenged', { loot: 6, armor: -1 }, 4],
+];
+D.ARM_SUFFIX = [
+  ['of the Bunker', { radRes: 15 }, 5], ['of Shadows', { stealth: 15 }, 4], ['of the Mule', { carry: 20 }, 4], ['of Vitality', { maxhp: 15 }, 4],
+  ['of Mending', { regen: 1 }, 3], ['of the Wanderer', { speed: 8 }, 4], ['of the Anomaly', { anomRes: 25 }, 3], ['of the Wall', { armor: 8 }, 3],
+  ['of the Scavenger', { loot: 10 }, 4], ['of Endurance', { durab: 60 }, 4], ['of the Camel', { thirst: -20 }, 3], ['of Plenty', { hunger: -20 }, 3],
+];
+D.ART_PREFIX = [['Dim', 0.7, 6], ['Faint', 0.85, 6], ['', 1, 10], ['Glowing', 1.2, 5], ['Pulsing', 1.4, 3], ['Unstable', 1.6, 2], ['Pristine', 1.9, 1]];
+D.ART_EXTRA = [ // random extra artifact mods: [stat, min, max]
+  ['radRes', 5, 20], ['anomRes', 5, 20], ['armor', 1, 6], ['stealth', 4, 15], ['carry', 5, 20], ['regen', 1, 2], ['speed', 3, 12], ['loot', 4, 15],
+  ['dmg', 4, 12], ['crit', 2, 8], ['acc', 3, 10], ['maxhp', 5, 15], ['radEmit', 1, 3], ['thirst', 10, 25], ['hunger', 10, 25], ['regen', -2, -1], ['carry', -10, -5],
+];
+
+/* ---- Recipes ---- */
+// out: [itemId, qty] ; needs comps/items ; req skills ; station: campfire|workbench ; schem: needs schematic
+D.RECIPES = [
+  { id: 'r_bandage', out: ['bandage', 2], needs: { cloth: 2 }, req: {} },
+  { id: 'r_knife', out: ['knife', 1], needs: { scrap: 2, tape: 1 }, req: {} },
+  { id: 'r_spikedclub', out: ['spikedclub', 1], needs: { wood: 2, screws: 2 }, req: {} },
+  { id: 'r_purewater', out: ['purewater', 1], needs: { dirtywater: 1 }, req: {}, station: 'campfire' },
+  { id: 'r_steak', out: ['steak', 1], needs: { rawmeat: 1 }, req: {}, station: 'campfire' },
+  { id: 'r_tape', out: ['tape', 1], needs: { cloth: 1, glue: 1 }, req: {} },
+  { id: 'r_glue', out: ['glue', 2], needs: { chemicals: 1, bones: 1 }, req: {}, station: 'campfire' },
+  { id: 'r_matches', out: ['matches', 3], needs: { wood: 1, chemicals: 1 }, req: {} },
+  { id: 'r_rebarspear', out: ['rebarspear', 1], needs: { scrap: 3, tape: 1, wood: 1 }, req: { crafting: 1 } },
+  { id: 'r_pipepistol', out: ['pipepistol', 1], needs: { scrap: 3, springs: 1, screws: 2 }, req: { crafting: 1 }, station: 'workbench' },
+  { id: 'r_ammo9', out: ['ammo9', 12], needs: { gunpowder: 1, scrap: 1 }, req: { crafting: 1 }, station: 'workbench' },
+  { id: 'r_shells', out: ['shells', 6], needs: { gunpowder: 1, plastic: 1, scrap: 1 }, req: { crafting: 2 }, station: 'workbench' },
+  { id: 'r_ammo762', out: ['ammo762', 8], needs: { gunpowder: 2, scrap: 1, copper: 1 }, req: { crafting: 3 }, station: 'workbench' },
+  { id: 'r_ammo545', out: ['ammo545', 10], needs: { gunpowder: 2, scrap: 1 }, req: { crafting: 3 }, station: 'workbench' },
+  { id: 'r_bolts', out: ['bolts', 8], needs: { wood: 1, scrap: 1 }, req: { crafting: 1 } },
+  { id: 'r_gunpowder', out: ['gunpowder', 2], needs: { chemicals: 1, fertilizer: 1 }, req: { crafting: 1 }, station: 'workbench' },
+  { id: 'r_gunpowder2', out: ['gunpowder', 1], needs: { casing: 2 }, req: {} },
+  { id: 'r_crossbow', out: ['crossbow', 1], needs: { wood: 3, springs: 2, rope: 1, screws: 2 }, req: { crafting: 2 }, station: 'workbench' },
+  { id: 'r_nailgun', out: ['nailgun', 1], needs: { drill: 1, springs: 2, tape: 2 }, req: { crafting: 2, science: 1 }, station: 'workbench' },
+  { id: 'r_repairkit', out: ['repairkit', 1], needs: { scrap: 2, tape: 1, screws: 1, glue: 1 }, req: { crafting: 2 } },
+  { id: 'r_lockpick', out: ['lockpick', 1], needs: { scrap: 1, springs: 1 }, req: { crafting: 1 } },
+  { id: 'r_scraparmor', out: ['scraparmor', 1], needs: { scrap: 6, leather: 2, tape: 2 }, req: { crafting: 2 }, station: 'workbench' },
+  { id: 'r_leather', out: ['leatherjkt', 1], needs: { leather: 3, cloth: 1 }, req: { crafting: 1 } },
+  { id: 'r_raiderspikes', out: ['raiderspikes', 1], needs: { scrap: 4, leather: 2, screws: 3 }, req: { crafting: 2 }, station: 'workbench' },
+  { id: 'r_modkit', out: ['modkit', 1], needs: { screws: 2, springs: 1, glue: 1, scrap: 2, circuit: 1 }, req: { crafting: 3 }, station: 'workbench' },
+  { id: 'r_plating', out: ['plating', 1], needs: { scrap: 4, glue: 1, tape: 1, fiber: 1 }, req: { crafting: 3 }, station: 'workbench' },
+  { id: 'r_sleepbag', out: ['sleepbag', 1], needs: { cloth: 5, tape: 1 }, req: { survival: 1 } },
+  { id: 'r_backpack', out: ['backpack', 1], needs: { cloth: 4, leather: 2, tape: 1 }, req: { survival: 2 } },
+  { id: 'r_waterfilter', out: ['waterfilter', 1], needs: { plastic: 2, cloth: 2, chemicals: 1 }, req: { survival: 2 } },
+  { id: 'r_jerky', out: ['jerky', 2], needs: { rawmeat: 2 }, req: { survival: 1 }, station: 'campfire' },
+  { id: 'r_tea', out: ['tea', 1], needs: { herbs: 2, water: 1 }, req: { survival: 1 }, station: 'campfire' },
+  { id: 'r_soup', out: ['soup', 1], needs: { herbs: 2, rawmeat: 1, water: 1 }, req: { survival: 2 }, station: 'campfire' },
+  { id: 'r_hidecloak', out: ['hidecloak', 1], needs: { hide: 3, cloth: 2 }, req: { survival: 3 }, station: 'workbench' },
+  { id: 'r_ghillie', out: ['ghillie', 1], needs: { cloth: 4, herbs: 4, rope: 1 }, req: { survival: 4 } },
+  { id: 'r_firstaid', out: ['firstaid', 1], needs: { bandage: 2, chemicals: 1 }, req: { medicine: 1 } },
+  { id: 'r_antirad', out: ['antirad', 1], needs: { chemicals: 2, herbs: 1 }, req: { medicine: 2 } },
+  { id: 'r_painkiller', out: ['painkiller', 2], needs: { chemicals: 1, herbs: 1 }, req: { medicine: 1 } },
+  { id: 'r_antibio', out: ['antibio', 1], needs: { chemicals: 1, herbs: 2, glass: 1 }, req: { medicine: 2 } },
+  { id: 'r_stimpak', out: ['stimpak', 1], needs: { chemicals: 2, syringe: 1, herbs: 1 }, req: { medicine: 3 }, station: 'workbench' },
+  { id: 'r_jet', out: ['jet', 1], needs: { chemicals: 2, plastic: 1 }, req: { medicine: 3, science: 1 }, station: 'workbench' },
+  { id: 'r_buffout', out: ['buffout', 1], needs: { chemicals: 2, hide: 1 }, req: { medicine: 3 }, station: 'workbench' },
+  { id: 'r_radx', out: ['radx', 1], needs: { chemicals: 2, lead: 1 }, req: { medicine: 2, science: 1 } },
+  { id: 'r_molotov', out: ['molotov', 1], needs: { bottle: 1, fuel: 1, cloth: 1 }, req: {} },
+  { id: 'r_geiger', out: ['geiger', 1], needs: { electronics: 2, circuit: 1, glass: 1 }, req: { crafting: 2, science: 1 }, station: 'workbench' },
+  { id: 'r_psyblock', out: ['psyblock', 1], needs: { chemicals: 2, circuit: 1 }, req: { science: 2, medicine: 2 }, station: 'workbench' },
+  // Schematic-only
+  { id: 'r_grenade', out: ['grenade', 1], needs: { gunpowder: 2, scrap: 1, tape: 1 }, req: { crafting: 2 }, station: 'workbench', schem: true },
+  { id: 'r_pipebomb', out: ['pipebomb', 1], needs: { pipe: 1, gunpowder: 2, tape: 1 }, req: { crafting: 1 }, schem: true },
+  { id: 'r_smg', out: ['smg', 1], needs: { scrap: 5, springs: 3, screws: 4, plastic: 2 }, req: { crafting: 4 }, station: 'workbench', schem: true },
+  { id: 'r_svd', out: ['svd', 1], needs: { scrap: 6, wood: 2, springs: 3, glass: 2, screws: 4 }, req: { crafting: 6 }, station: 'workbench', schem: true },
+  { id: 'r_shockbaton', out: ['shockbaton', 1], needs: { leadpipe: 1, electronics: 2, copper: 2, carbatt: 1 }, req: { crafting: 2, science: 2 }, station: 'workbench', schem: true },
+  { id: 'r_laser', out: ['laserpistol', 1], needs: { electronics: 4, circuit: 3, glass: 2, scrap: 3 }, req: { science: 3, crafting: 3 }, station: 'workbench', schem: true },
+  { id: 'r_cells', out: ['cells', 10], needs: { electronics: 1, chemicals: 1, lead: 1 }, req: { science: 2 }, station: 'workbench', schem: true },
+  { id: 'r_gauss', out: ['gauss', 1], needs: { circuit: 6, electronics: 6, copper: 6, scrap: 8, fiber: 3 }, req: { science: 6, crafting: 6 }, station: 'workbench', schem: true },
+  { id: 'r_combatarmor', out: ['combatarmor', 1], needs: { fiber: 4, scrap: 6, leather: 3, glue: 2 }, req: { crafting: 5 }, station: 'workbench', schem: true },
+  { id: 'r_seva', out: ['seva', 1], needs: { fiber: 3, cloth: 4, lead: 3, glass: 2, circuit: 1 }, req: { science: 4, crafting: 4 }, station: 'workbench', schem: true },
+  { id: 'r_exo', out: ['exo', 1], needs: { scrap: 15, circuit: 6, electronics: 6, fiber: 6, carbatt: 2 }, req: { crafting: 8, science: 5 }, station: 'workbench', schem: true },
+  { id: 'r_sciencemed', out: ['sciencemed', 1], needs: { chemicals: 3, herbs: 2, bandage: 1 }, req: { medicine: 4, science: 2 }, station: 'workbench', schem: true },
+  { id: 'r_radaway', out: ['radaway', 1], needs: { chemicals: 3, water: 1, plastic: 1 }, req: { medicine: 3 }, station: 'workbench', schem: true },
+  { id: 'r_detector', out: ['detector', 1], needs: { circuit: 2, electronics: 2, copper: 2 }, req: { science: 2 }, station: 'workbench', schem: true },
+];
+/* ---- Skills & perks ---- */
+D.SKILLS = {
+  combat: ['Combat', '+5% damage, +2 accuracy per level'],
+  survival: ['Survival', 'Slower hunger/thirst, +4% travel speed, better rest'],
+  scavenging: ['Scavenging', 'More & rarer loot when searching'],
+  crafting: ['Crafting', 'Unlocks recipes, better crafted quality, more scrap'],
+  medicine: ['Medicine', '+10% healing per level, unlocks medical recipes'],
+  barter: ['Barter', 'Better prices with traders, more quest caps'],
+  science: ['Science', 'Anomaly & radiation resistance, artifact finding, tech recipes'],
+};
+// perk: id, name, desc, effect mods, optional req
+D.PERKS = [
+  ['toughness', 'Toughness', '+6 armor', { armor: 6 }], ['leadbelly', 'Lead Belly', 'Food & water give 60% less radiation', {}],
+  ['packrat', 'Pack Rat', '+25 carry capacity', { carry: 25 }], ['ironfist', 'Iron Fist', '+30% melee damage', {}],
+  ['sniper', 'Sniper', '+12 accuracy with ranged', {}], ['bloodymess', 'Bloody Mess', 'Crits deal x2.6 instead of x2', {}],
+  ['lucky', 'Lucky', '+6% crit chance, +8 loot luck', { crit: 6, loot: 8 }], ['camel', 'Camel', 'Thirst -35%', { thirst: -35 }],
+  ['ironstomach', 'Iron Stomach', 'Hunger -35%', { hunger: -35 }], ['regenerator', 'Regenerator', '+2 HP regen per hour', { regen: 2 }],
+  ['quickfeet', 'Quick Feet', '+60% flee chance', {}], ['ninja', 'Ninja', '+20 stealth (fewer encounters)', { stealth: 20 }],
+  ['mrfixit', 'Mr. Fixit', 'Gear loses durability 50% slower; repairs +50%', {}], ['chemist', 'Chemist', 'Medical recipes yield double', {}],
+  ['anomalysense', 'Anomaly Sense', '+30% artifact find chance, +15 anomaly resist', { anomRes: 15 }], ['radchild', 'Rad Child', 'Heal 1 HP/h per 20 rad you carry', {}],
+  ['scrounger', 'Scrounger', 'Find 50% more ammo', {}], ['silvertongue', 'Silver Tongue', '+15% better prices', {}],
+  ['treasurehunter', 'Treasure Hunter', 'Stash encounters 2x more common & richer', {}], ['marathoner', 'Marathoner', '+15% travel speed', { speed: 15 }],
+  ['adrenaline', 'Adrenaline', '+25% damage when below 35% HP', {}], ['vampire', 'Vampire', '+6% lifesteal', { lifesteal: 6 }],
+  ['hardened', 'Hardened', '+25 max HP', { maxhp: 25 }], ['radres', 'Rad Resistant', '+20% radiation resistance', { radRes: 20 }],
+  ['salvager', 'Salvager', 'Scrapping yields +1 random component', {}], ['nightowl', 'Night Owl', 'No night penalties, +10 acc at night', {}],
+  ['gunslinger', 'Gunslinger', 'Pistols & SMGs +20% damage', {}], ['brute', 'Brute', '+15% damage, -5 accuracy', { dmg: 15, acc: -5 }],
+  ['cautious', 'Cautious', 'Anomalies and traps deal 40% less damage', { anomRes: 25 }], ['leader', 'Natural Leader', '+25% quest rewards', {}],
+  ['dualwield', 'Rapid Fire', '15% chance to attack twice', {}], ['butcher', 'Butcher', 'Mutants always drop meat/hide', {}],
+  ['deadeye', 'Dead Eye', 'Aimed attacks +15 accuracy', {}], ['tinker', 'Tinker', 'Crafted gear one rarity higher chance +25%', {}],
+  ['forager', 'Forager', 'Find herbs & food while travelling', {}], ['intimidate', 'Intimidating', '+20% chance enemies flee/avoid you', { fear: 20 }],
+];
+
+/* ---- Factions ---- */
+D.FACTIONS = {
+  loners:  { name: 'Free Stalkers', color: '#e3d36b', start: 10, enemies: [] },
+  order:   { name: 'Iron Order',    color: '#ff5c5c', start: 0,  enemies: ['freedom', 'raiders'] },
+  freedom: { name: 'Wild Cards',    color: '#5dff6a', start: 0,  enemies: ['order'] },
+  science: { name: 'Ecologists',    color: '#4fb3ff', start: 0,  enemies: [] },
+  raiders: { name: 'Rust Gang',     color: '#ff8c3a', start: -60, enemies: ['order', 'loners'] },
+};
+
+/* ---- POI types: label, glyph, color, loot [tag,weight], danger mod, workbench, settlement chance % ---- */
+D.POI = {
+  pharmacy:   { label: 'Pharmacy', g: '✚', c: '#5dff6a', loot: [['med', 7], ['chem', 3], ['junk:med', 2], ['drink', 1]], danger: 0, sc: 0 },
+  hospital:   { label: 'Hospital', g: 'H', c: '#ff6b6b', loot: [['med', 7], ['chem', 2], ['comp:chem', 2], ['junk:med', 2], ['armor:med', 1], ['schematic', 0.5]], danger: 1, sc: 8 },
+  clinic:     { label: 'Clinic', g: '+', c: '#ff9b9b', loot: [['med', 6], ['chem', 1], ['junk:med', 2]], danger: 0, sc: 0 },
+  fuel:       { label: 'Gas Station', g: 'F', c: '#ffd166', loot: [['comp:chem', 4], ['food', 3], ['drink', 3], ['junk:car', 4], ['tool', 1]], danger: 0, sc: 10, bench: true },
+  police:     { label: 'Police Station', g: 'P', c: '#4fb3ff', loot: [['weapon:police', 4], ['ammo', 5], ['armor:police', 2], ['med', 1], ['tool:police', 1]], danger: 1, sc: 12 },
+  military:   { label: 'Military Site', g: '★', c: '#ff5c5c', loot: [['weapon:mil', 5], ['ammo', 6], ['armor:mil', 3], ['med:mil', 2], ['food:mil', 2], ['throw', 2], ['schematic', 1]], danger: 2.5, sc: 10, bench: true },
+  industrial: { label: 'Industrial Zone', g: '⚙', c: '#c9a227', loot: [['comp:hard', 6], ['comp:chem', 3], ['junk', 4], ['tool', 2], ['comp:elec', 2], ['schematic', 0.7]], danger: 1.2, sc: 6, bench: true },
+  factory:    { label: 'Factory', g: '⚒', c: '#d4a017', loot: [['comp:hard', 6], ['comp:elec', 3], ['junk', 3], ['tool', 2], ['schematic', 1]], danger: 1.5, sc: 6, bench: true },
+  power:      { label: 'Power Facility', g: 'ϟ', c: '#f4f75e', loot: [['comp:elec', 6], ['junk:elec', 3], ['comp:hard', 2], ['artifact', 0.5]], danger: 2, sc: 0 },
+  school:     { label: 'School', g: 'S', c: '#b5e48c', loot: [['junk:office', 4], ['book', 1.5], ['food', 2], ['comp:cloth', 2], ['drink', 1]], danger: 0.5, sc: 14 },
+  university: { label: 'University', g: 'U', c: '#99d98c', loot: [['junk:office', 3], ['book', 2], ['junk:science', 2], ['comp:elec', 2], ['schematic', 1.2]], danger: 0.8, sc: 12 },
+  supermarket:{ label: 'Supermarket', g: '$', c: '#90e0ef', loot: [['food', 7], ['drink', 6], ['junk:home', 2], ['med', 1], ['comp', 1]], danger: 0.6, sc: 12 },
+  shop:       { label: 'Shop', g: '¤', c: '#a0c4ff', loot: [['junk', 4], ['food', 2], ['drink', 2], ['comp', 2]], danger: 0.2, sc: 4 },
+  hardware:   { label: 'Hardware Store', g: '⚒', c: '#e9c46a', loot: [['comp:hard', 6], ['tool', 4], ['weapon:tools', 3], ['junk:tools', 2]], danger: 0.3, sc: 6, bench: true },
+  carrepair:  { label: 'Auto Repair', g: '⛭', c: '#e76f51', loot: [['junk:car', 5], ['comp:hard', 4], ['comp:chem', 2], ['tool', 2]], danger: 0.4, sc: 5, bench: true },
+  electronics:{ label: 'Electronics Store', g: 'Ω', c: '#80ffdb', loot: [['comp:elec', 6], ['junk:elec', 4], ['tool:science', 1]], danger: 0.3, sc: 3 },
+  clothes:    { label: 'Clothing Store', g: '♠', c: '#cdb4db', loot: [['armor:cloth', 4], ['comp:cloth', 5], ['junk', 1]], danger: 0.2, sc: 3 },
+  outdoor:    { label: 'Outdoor Store', g: '▲', c: '#52b788', loot: [['armor:nature', 3], ['tool:nature', 4], ['food', 2], ['weapon:nature', 2], ['ammo', 1]], danger: 0.3, sc: 6 },
+  hunting:    { label: 'Gun Shop', g: '⌖', c: '#ff7b00', loot: [['weapon:ranged', 5], ['ammo', 7], ['tool', 1]], danger: 1, sc: 4 },
+  food:       { label: 'Restaurant', g: '♨', c: '#f4a261', loot: [['food', 5], ['drink', 4], ['junk:home', 2]], danger: 0.2, sc: 4 },
+  bar:        { label: 'Bar', g: '♣', c: '#e5989b', loot: [['drink', 6], ['food', 2], ['junk', 2], ['valuable', 0.5]], danger: 0.5, sc: 14 },
+  bank:       { label: 'Bank', g: '₿', c: '#ffd700', loot: [['valuable', 6], ['junk:office', 3], ['weapon:police', 1]], danger: 0.8, sc: 4 },
+  church:     { label: 'Church', g: '✝', c: '#ddd', loot: [['valuable', 2], ['food', 2], ['med', 2], ['junk:home', 2], ['comp:cloth', 1]], danger: 0.3, sc: 22 },
+  firestation:{ label: 'Fire Station', g: '♦', c: '#ff4d4d', loot: [['weapon:tools', 3], ['armor:tools', 2], ['med', 3], ['junk:tools', 2], ['tool', 2]], danger: 0.4, sc: 15, bench: true },
+  railway:    { label: 'Railway Station', g: '⊞', c: '#adb5bd', loot: [['junk', 4], ['comp:hard', 3], ['food', 1], ['weapon', 1], ['valuable', 0.5]], danger: 0.8, sc: 25 },
+  museum:     { label: 'Museum', g: 'M', c: '#ffb4a2', loot: [['valuable', 3], ['weapon:melee', 2], ['junk', 2], ['artifact', 0.4], ['book', 1]], danger: 0.5, sc: 6 },
+  hotel:      { label: 'Hotel', g: 'h', c: '#b8c0ff', loot: [['food', 2], ['drink', 2], ['junk:home', 3], ['valuable', 1], ['med', 1]], danger: 0.4, sc: 16 },
+  prison:     { label: 'Prison', g: '#', c: '#6c757d', loot: [['weapon:melee', 3], ['weapon:police', 2], ['junk', 2], ['ammo', 2]], danger: 2, sc: 8 },
+  townhall:   { label: 'Town Hall', g: '♜', c: '#ffe066', loot: [['junk:office', 4], ['valuable', 1], ['book', 1], ['schematic', 0.5]], danger: 0.5, sc: 30 },
+  library:    { label: 'Library', g: 'L', c: '#c3a995', loot: [['book', 3], ['junk:office', 4], ['schematic', 0.8]], danger: 0.2, sc: 10 },
+  post:       { label: 'Post Office', g: '✉', c: '#ffcad4', loot: [['junk', 4], ['valuable', 1], ['tool', 1], ['schematic', 0.4]], danger: 0.3, sc: 6 },
+  water:      { label: 'Water Works', g: '≈', c: '#48cae4', loot: [['drink', 4], ['comp:chem', 3], ['comp:hard', 3]], danger: 1, sc: 4 },
+  farm:       { label: 'Abandoned Farm', g: '¥', c: '#b5838d', loot: [['food', 4], ['junk:nature', 3], ['comp:nature', 3], ['weapon:nature', 1]], danger: 0.6, sc: 15 },
+  ruin:       { label: 'Ruins', g: '▣', c: '#8d99ae', loot: [['junk', 5], ['comp', 3], ['food', 1], ['weapon', 0.6], ['valuable', 0.4]], danger: 0.8, sc: 6 },
+  wreck:      { label: 'Vehicle Wreck', g: '⧉', c: '#9a8c98', loot: [['junk:car', 5], ['comp:chem', 2], ['comp:hard', 2], ['ammo', 1]], danger: 0.5, sc: 0 },
+  camp:       { label: 'Abandoned Camp', g: '⛺', c: '#c9ada7', loot: [['food', 3], ['ammo', 2], ['tool', 2], ['weapon', 1], ['med', 1]], danger: 1, sc: 0 },
+  bunker:     { label: 'Bunker', g: '⌂', c: '#5dff6a', loot: [['ammo', 3], ['food:mil', 3], ['med', 2], ['schematic', 1]], danger: 0, sc: 100, bench: true },
+};
+
+// Overpass tag -> POI type
+D.tagToPoi = function (t) {
+  const a = t.amenity, s = t.shop, m = t.military, lu = t.landuse;
+  if (m || lu === 'military') return 'military';
+  if (a === 'pharmacy' || s === 'chemist') return 'pharmacy';
+  if (a === 'hospital') return 'hospital';
+  if (a === 'clinic' || a === 'doctors' || a === 'dentist' || a === 'veterinary') return 'clinic';
+  if (a === 'fuel' || s === 'gas') return 'fuel';
+  if (a === 'police') return 'police';
+  if (a === 'prison') return 'prison';
+  if (a === 'fire_station') return 'firestation';
+  if (a === 'school' || a === 'kindergarten') return 'school';
+  if (a === 'university' || a === 'college') return 'university';
+  if (a === 'bank') return 'bank';
+  if (a === 'place_of_worship') return 'church';
+  if (a === 'library') return 'library';
+  if (a === 'post_office') return 'post';
+  if (a === 'townhall') return 'townhall';
+  if (a === 'bar' || a === 'pub') return 'bar';
+  if (a === 'restaurant' || a === 'cafe' || a === 'fast_food') return 'food';
+  if (a === 'marketplace') return 'supermarket';
+  if (a === 'cinema' || a === 'theatre') return 'ruin';
+  if (s === 'supermarket' || s === 'convenience' || s === 'mall' || s === 'department_store' || s === 'butcher' || s === 'bakery' || s === 'alcohol' || s === 'kiosk') return 'supermarket';
+  if (s === 'hardware' || s === 'doityourself') return 'hardware';
+  if (s === 'car_repair' || s === 'car_parts' || s === 'tyres') return 'carrepair';
+  if (s === 'electronics' || s === 'mobile_phone' || s === 'computer') return 'electronics';
+  if (s === 'clothes' || s === 'shoes') return 'clothes';
+  if (s === 'outdoor' || s === 'sports') return 'outdoor';
+  if (s === 'hunting' || s === 'weapons') return 'hunting';
+  if (s) return 'shop';
+  if (t.power) return 'power';
+  if (t.man_made === 'works') return 'factory';
+  if (t.man_made === 'wastewater_plant' || t.man_made === 'water_tower' || t.man_made === 'water_works') return 'water';
+  if (t.man_made) return 'ruin';
+  if (lu === 'industrial') return 'industrial';
+  if (lu === 'farmyard') return 'farm';
+  if (t.railway) return 'railway';
+  if (t.tourism === 'museum') return 'museum';
+  if (t.tourism) return 'hotel';
+  return null;
+};
+
+/* ---- Enemies ---- */
+// id,name,hp,dmg,acc,armor,xp,caps,loot tags,kind,minDanger,special
+D.ENEMIES = [
+  ['radrat', 'Rad Rat Swarm', 14, [2, 5], 70, 0, 6, [0, 0], ['mutant'], 'mutant', 0, 'rad'],
+  ['dog', 'Blind Dog', 20, [3, 7], 72, 0, 9, [0, 0], ['mutant'], 'mutant', 0, 'bleed'],
+  ['flesh', 'Flesh', 34, [4, 8], 60, 2, 12, [0, 0], ['mutant'], 'mutant', 0.5, null],
+  ['ghoul', 'Feral Ghoul', 28, [4, 9], 70, 1, 14, [0, 8], ['mutant', 'junk'], 'mutant', 1, 'rad'],
+  ['bandit', 'Bandit', 30, [5, 10], 65, 3, 15, [5, 25], ['human'], 'raider', 0, null],
+  ['raider', 'Rust Gang Raider', 38, [6, 12], 68, 5, 20, [10, 35], ['human'], 'raider', 1, 'bleed'],
+  ['snork', 'Snork', 40, [7, 13], 75, 2, 24, [0, 0], ['mutant'], 'mutant', 2, null],
+  ['boar', 'Mutant Boar', 55, [7, 14], 62, 5, 26, [0, 0], ['mutant'], 'mutant', 1.5, null],
+  ['zombie', 'Zombified Stalker', 45, [6, 12], 55, 6, 22, [0, 20], ['human'], 'mutant', 1.5, 'rad'],
+  ['merc', 'Mercenary', 55, [9, 16], 75, 9, 35, [20, 60], ['human'], 'raider', 3, null],
+  ['bloodsucker', 'Bloodsucker', 80, [10, 18], 78, 4, 50, [0, 0], ['mutant'], 'mutant', 3, 'drain'],
+  ['sentry', 'Rogue Sentry Bot', 75, [9, 15], 70, 14, 45, [0, 0], ['robot'], 'robot', 2.5, 'shock'],
+  ['burer', 'Burer', 70, [8, 14], 85, 4, 55, [0, 0], ['mutant'], 'mutant', 4, 'psy'],
+  ['controller', 'Controller', 90, [10, 16], 90, 3, 80, [0, 0], ['mutant'], 'mutant', 5, 'psy'],
+  ['chimera', 'Chimera', 130, [14, 24], 76, 8, 110, [0, 0], ['mutant'], 'mutant', 6, 'bleed'],
+  ['pseudogiant', 'Pseudogiant', 180, [16, 30], 60, 14, 140, [0, 0], ['mutant'], 'mutant', 7, null],
+  ['exomerc', 'Exo-Mercenary', 140, [14, 24], 80, 22, 150, [60, 160], ['human'], 'raider', 7, null],
+];
+D.ENEMY_VARIANTS = [
+  ['', {}, 30], ['Rabid', { dmg: 1.2 }, 6], ['Starving', { hp: 0.75, dmg: 1.1, xp: 0.9 }, 6], ['Alpha', { hp: 1.5, dmg: 1.3, xp: 1.7, caps: 1.5 }, 3],
+  ['Irradiated', { special: 'rad', xp: 1.15 }, 5], ['Armored', { armor: 6, xp: 1.2 }, 4], ['Glowing', { hp: 1.2, special: 'rad', xp: 1.3 }, 3], ['Veteran', { acc: 10, dmg: 1.15, xp: 1.3, caps: 1.4 }, 4],
+  ['Crippled', { hp: 0.7, acc: -10, xp: 0.8 }, 4], ['Frenzied', { dmg: 1.4, acc: -8, xp: 1.2 }, 3], ['Elder', { hp: 1.8, dmg: 1.4, xp: 2, caps: 2 }, 1], ['Toxic', { special: 'poison', xp: 1.15 }, 3],
+];
+D.BOSS_NAMES = ['Butcher', 'Rotgut', 'Ivan the Mad', 'Scar', 'Grinder', 'Old Viktor', 'Tusk', 'Hollow-Eye', 'Red Mara', 'Kostya Crowbar', 'Mother Rust', 'Gnashjaw', 'The Doctor', 'Lame Pyotr'];
+
+/* ---- Names ---- */
+D.FIRST = ['Sasha', 'Viktor', 'Oleg', 'Mila', 'Yuri', 'Kat', 'Anton', 'Lena', 'Boris', 'Dima', 'Ivo', 'Marta', 'Tõnu', 'Kalev', 'Liis', 'Jaan', 'Kristo', 'Hanna', 'Pavel', 'Nika', 'Grigor', 'Sven', 'Ott', 'Mari'];
+D.NICK = ['Wolf', 'Fang', 'Doc', 'Ghost', 'Sparrow', 'Rat', 'Tinker', 'Grumpy', 'Owl', 'Bolt', 'Dagger', 'Smiley', 'Hermit', 'Rusty', 'Professor', 'Lucky', 'Crow', 'Bear', 'Fox', 'Mole', 'Stitch', 'Sarge', 'Gecko', 'Kettle'];
+D.ZONE_ADJ = ['Glowing', 'Rotten', 'Whispering', 'Burnt', 'Dead', 'Hollow', 'Black', 'Crimson', 'Silent', 'Weeping', 'Rusted', 'Shattered', 'Poisoned', 'Grey', 'Bleeding'];
+D.ZONE_NOUN = ['Pit', 'Grove', 'Hollow', 'Field', 'Yard', 'Crater', 'Marsh', 'Sector', 'Ravine', 'Quarry', 'Basin', 'Spires', 'Graveyard', 'Swamp', 'Nest'];
+D.SETTLE_NAMES = ['Haven', 'Outpost', 'Bastion', 'Refuge', 'Camp', 'Stronghold', 'Waypoint', 'Hideout', 'Enclave'];
+
+</script>
+<script>
+/* ===== core: utils, state, items, stats ===== */
+'use strict';
+const $ = s => document.querySelector(s);
+function hashStr(str) {
+  str = String(str); let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) { const ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  return h1 >>> 0;
+}
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let RNG = Math.random;
+const rnd = () => RNG();
+const ri = (a, b) => Math.floor(rnd() * (b - a + 1)) + a;
+const pick = a => a[Math.floor(rnd() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const round1 = v => Math.round(v * 10) / 10;
+function wpick(arr, wf) { // arr of items; wf(item)->weight or item[2]
+  const ws = arr.map(x => Math.max(0, wf ? wf(x) : x[2])); const tot = ws.reduce((a, b) => a + b, 0);
+  if (tot <= 0) return arr[Math.floor(rnd() * arr.length)];
+  let r = rnd() * tot; for (let i = 0; i < arr.length; i++) { r -= ws[i]; if (r <= 0) return arr[i]; } return arr[arr.length - 1];
+}
+function withSeed(seed, fn) { const old = RNG; RNG = mulberry32(seed >>> 0); try { return fn(); } finally { RNG = old; } }
+function dist(la1, lo1, la2, lo2) {
+  const R = 6371000, toR = Math.PI / 180, dLa = (la2 - la1) * toR, dLo = (lo2 - lo1) * toR;
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * toR) * Math.cos(la2 * toR) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function fmtDist(m) { return m < 1000 ? Math.round(m) + ' m' : (m / 1000).toFixed(m < 10000 ? 2 : 1) + ' km'; }
+function fmtMin(min) { min = Math.round(min); const h = Math.floor(min / 60), m = min % 60; return h ? `${h}h ${m}m` : `${m}m`; }
+
+let G = null;
+const SAVE_KEY = 'wasteland_rw_save_v1';
+
+// runtime-defined items
+D.ITEMS.schematic = { id: 'schematic', name: 'Schematic', cat: 'schematic', w: 0.1, v: 90, tags: ['schematic'] };
+D.ITEMS.package = { id: 'package', name: 'Sealed Package', cat: 'quest', w: 1, v: 0, tags: [] };
+D.RECIPE_BY_ID = {}; D.RECIPES.forEach(r => D.RECIPE_BY_ID[r.id] = r);
+D.PERK_BY_ID = {}; D.PERKS.forEach(p => D.PERK_BY_ID[p[0]] = p);
+
+function uid() { return G.nextUid++; }
+function hasPerk(id) { return G.p.perks.includes(id); }
+function day() { return Math.floor(G.time / 1440) + 1; }
+function hourOf() { return (G.time % 1440) / 60; }
+function isNight() { const h = hourOf(); return h < 6 || h >= 21; }
+function timeStr() { const m = Math.floor(G.time % 1440); return `Day ${day()} ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; }
+
+/* ---------- items ---------- */
+function def(it) { return D.ITEMS[it.base]; }
+function itemName(it) {
+  if (it.base === 'schematic') return 'Schematic: ' + recipeName(D.RECIPE_BY_ID[it.recipe]);
+  return it.name || D.ITEMS[it.base].name;
+}
+function recipeName(r) { return r ? D.ITEMS[r.out[0]].name + (r.out[1] > 1 ? ' x' + r.out[1] : '') : '?'; }
+function itemWeight(it) { const b = def(it); return (it.w != null ? it.w : b.w) * (it.qty || 1); }
+function itemUnitValue(it) {
+  const b = def(it); let v = it.v != null ? it.v : b.v;
+  if (it.maxDur) v *= 0.45 + 0.55 * (it.dur / it.maxDur);
+  return Math.max(1, Math.round(v));
+}
+function rarityColor(it) { return it.rarity != null ? D.RARITY[it.rarity].color : '#cfe8c8'; }
+
+function rollRarity(luck) {
+  luck = luck || 0;
+  return wpick(D.RARITY, r => r.w * (1 + (luck / 40) * r.id * (r.id + 1) / 2)).id;
+}
+function makeItem(baseId, opts) {
+  opts = opts || {}; const b = D.ITEMS[baseId];
+  if (!b) throw new Error('Unknown item ' + baseId);
+  if (b.cat === 'artifact') return makeArtifact(baseId, opts.luck || 0);
+  if (b.stack) return { uid: uid(), base: baseId, qty: opts.qty || 1 };
+  if (baseId === 'schematic') return { uid: uid(), base: 'schematic', recipe: opts.recipe || pick(D.SCHEMATICS) };
+  if (b.cat === 'quest') return { uid: uid(), base: baseId, quest: opts.quest };
+  const rarity = opts.rarity != null ? opts.rarity : rollRarity(opts.luck || 0);
+  return makeGear(baseId, rarity, opts);
+}
+const W_CONSUMED = ['dmg', 'acc', 'crit', 'bleed', 'burn', 'radDmg', 'lifesteal', 'durab', 'weight', 'value'];
+const A_CONSUMED = ['armor', 'radRes', 'anomRes', 'stealth', 'carry', 'durab', 'weight', 'value'];
+function makeGear(baseId, rarity, opts) {
+  const b = D.ITEMS[baseId], R = D.RARITY[rarity];
+  const isW = b.cat === 'melee' || b.cat === 'ranged';
+  const P = isW ? D.WPN_PREFIX : D.ARM_PREFIX, S = isW ? D.WPN_SUFFIX : D.ARM_SUFFIX;
+  const pre = [], suf = [];
+  if (rarity === 0 && rnd() < 0.3) pre.push(rnd() < 0.5 ? P[0] : (isW ? P[8] : P[8]));
+  for (let i = 0; i < R.affixes; i++) {
+    const usePre = pre.length <= suf.length ? rnd() < 0.6 : rnd() < 0.35;
+    const pool = usePre ? P : S; let a = null;
+    for (let t = 0; t < 12; t++) { a = wpick(pool); const bad = a[1].value < 0 || (a[1].dmg < 0) || (a[1].armor < 0); if (!pre.includes(a) && !suf.includes(a) && !bad) break; a = null; }
+    if (a) (usePre ? pre : suf).push(a);
+  }
+  const mods = {};
+  [...pre, ...suf].forEach(a => { for (const k in a[1]) mods[k] = (mods[k] || 0) + a[1][k]; });
+  const it = { uid: uid(), base: baseId, rarity, affixes: [...pre, ...suf].map(a => a[0]) };
+  it.name = [pre.map(a => a[0]).join(' '), b.name, suf.length ? suf.map(a => a[0]).join(' & ').replace(/ & of /g, ' & ') : ''].filter(Boolean).join(' ');
+  const q = R.mult * (0.92 + rnd() * 0.16);
+  if (isW) {
+    const dm = 1 + (mods.dmg || 0) / 100;
+    it.dmg = [Math.max(1, Math.round(b.dmg[0] * q * dm)), Math.max(2, Math.round(b.dmg[1] * q * dm))];
+    it.acc = b.acc + (mods.acc || 0) + rarity * 2; it.crit = b.crit + (mods.crit || 0);
+    it.bleed = mods.bleed || 0; it.burn = (mods.burn || 0) + (b.elem === 'fire' ? 20 : 0); it.radDmg = mods.radDmg || 0; it.lifesteal = mods.lifesteal || 0;
+    if (b.elem === 'shock') it.shock = 1;
+  } else {
+    it.armor = Math.max(0, Math.round(b.armor * q + (mods.armor || 0)));
+    it.radRes = Math.max(0, Math.round(b.radRes * (0.9 + 0.2 * rnd()) * (1 + rarity * 0.08) + (mods.radRes || 0)));
+    it.anomRes = Math.max(0, Math.round(b.anomRes * (0.9 + 0.2 * rnd()) * (1 + rarity * 0.08) + (mods.anomRes || 0)));
+    it.stealth = (b.stealth || 0) + (mods.stealth || 0); it.carry = (b.carry || 0) + (mods.carry || 0);
+  }
+  const gm = {}; const cons = isW ? W_CONSUMED : A_CONSUMED;
+  for (const k in mods) if (!cons.includes(k) && mods[k]) gm[k] = mods[k];
+  it.gmods = gm;
+  it.maxDur = Math.max(10, Math.round(b.dur * (1 + (mods.durab || 0) / 100) * (1 + rarity * 0.1)));
+  it.dur = opts.fullDur ? it.maxDur : Math.round(it.maxDur * (0.35 + rnd() * 0.6));
+  it.w = round1(Math.max(0.1, b.w * (1 + (mods.weight || 0) / 100)));
+  it.v = Math.round(b.v * Math.pow(R.mult, 2.4) * (1 + (mods.value || 0) / 100) * (1 + it.affixes.length * 0.08));
+  return it;
+}
+function makeArtifact(baseId, luck) {
+  const b = D.ITEMS[baseId];
+  const qi = D.ART_PREFIX.indexOf(wpick(D.ART_PREFIX, x => x[2] * (1 + D.ART_PREFIX.indexOf(x) * (luck || 0) / 80)));
+  const [qname, factor] = D.ART_PREFIX[qi];
+  const rarity = [0, 0, 1, 2, 3, 3, 4][qi];
+  const mods = {};
+  for (const k in b.mods) { const v = b.mods[k]; mods[k] = D.NEG_MODS[k] ? v : Math.round(v * factor) || Math.sign(v); }
+  const extras = rarity === 0 ? 0 : ri(Math.max(0, rarity - 2), rarity);
+  for (let i = 0; i < extras; i++) { const e = pick(D.ART_EXTRA); mods[e[0]] = (mods[e[0]] || 0) + ri(e[1], e[2]); }
+  let score = 0; for (const k in mods) score += D.NEG_MODS[k] ? -mods[k] * 4 : mods[k] * (k === 'regen' ? 15 : k === 'maxhp' ? 1.5 : 1);
+  return { uid: uid(), base: baseId, rarity, name: (qname ? qname + ' ' : '') + b.name, gmods: mods, w: 0.5, v: Math.max(40, Math.round(60 + score * 6 * (1 + rarity * 0.3))) };
+}
+function modsText(m) {
+  return Object.keys(m || {}).filter(k => m[k]).map(k => {
+    const v = m[k]; const bad = D.NEG_MODS[k] ? v > 0 : v < 0;
+    return `<span class="${bad ? 'neg' : 'pos'}">${v > 0 ? '+' : ''}${v}${D.MOD_NAMES[k] || ' ' + k}</span>`;
+  }).join(', ');
+}
+function itemDesc(it) {
+  const b = def(it), L = [];
+  L.push(`<span class="muted">${b.cat.toUpperCase()}${it.rarity != null ? ' · <span style="color:' + rarityColor(it) + '">' + D.RARITY[it.rarity].name + '</span>' : ''} · ${round1(itemWeight(it))} kg · ${itemUnitValue(it)} caps</span>`);
+  if (it.dmg) L.push(`Damage ${it.dmg[0]}-${it.dmg[1]} · Acc ${it.acc} · Crit ${it.crit}%${b.ammo ? ' · Ammo: ' + D.ITEMS[b.ammo].name : ''}${b.burst ? ' · Burst x' + b.burst : ''}`);
+  if (it.dmg && (it.bleed || it.burn || it.radDmg || it.lifesteal || it.shock)) L.push([it.bleed && `Bleed ${it.bleed}%`, it.burn && `Burn ${it.burn}%`, it.radDmg && `+${it.radDmg} rad dmg`, it.lifesteal && `Lifesteal ${it.lifesteal}%`, it.shock && 'Shock (ignores armor)'].filter(Boolean).join(' · '));
+  if (it.armor != null) L.push(`Armor ${it.armor} · Rad res ${it.radRes}% · Anomaly res ${it.anomRes}%${it.stealth ? ' · Stealth ' + it.stealth : ''}${it.carry ? ' · Carry +' + it.carry : ''}`);
+  if (it.maxDur) L.push(`Condition ${Math.round(it.dur)}/${it.maxDur}${it.dur <= 0 ? ' <span class="neg">BROKEN</span>' : ''}`);
+  if (it.gmods && Object.keys(it.gmods).length) L.push(modsText(it.gmods));
+  if (b.eff) { const e = b.eff; L.push(['food', 'water', 'hp', 'rad', 'fatigue'].filter(k => e[k]).map(k => `${e[k] > 0 ? '+' : ''}${e[k]} ${k}`).join(', ') + (e.bleed ? ', stops bleeding' : '') + (e.buff ? `, +${e.buff[1]} ${e.buff[0]} for ${fmtMin(e.buff[2])}` : '') + (e.dmg ? `Deals ${e.dmg[0]}-${e.dmg[1]} damage${e.burn ? ' + burning' : ''} (combat)` : '')); }
+  if (b.scrap) L.push('Scraps into: ' + Object.entries(b.scrap).map(([k, n]) => n + ' ' + D.ITEMS[k].name).join(', '));
+  if (b.desc) L.push(b.desc);
+  if (b.cat === 'book') L.push('Read: +1 ' + D.SKILLS[b.skill][0]);
+  if (it.base === 'schematic') { const r = D.RECIPE_BY_ID[it.recipe]; L.push('Read to learn recipe. Needs: ' + Object.entries(r.needs).map(([k, n]) => n + ' ' + D.ITEMS[k].name).join(', ')); }
+  if (it.affixes && it.affixes.length) L.push('<span class="muted">Affixes: ' + it.affixes.join(', ') + '</span>');
+  return L.join('<br>');
+}
+
+/* ---------- inventory ---------- */
+function invFind(uidv) { return G.p.inv.find(i => i.uid === uidv); }
+function countItem(baseId) { return G.p.inv.filter(i => i.base === baseId).reduce((a, i) => a + (i.qty || 1), 0); }
+function addItem(it) {
+  const b = def(it);
+  if (b.stack) { const ex = G.p.inv.find(i => i.base === it.base); if (ex) { ex.qty += it.qty; return ex; } }
+  G.p.inv.push(it); return it;
+}
+function giveItem(baseId, qty, opts) { return addItem(makeItem(baseId, Object.assign({ qty }, opts || {}))); }
+function removeQty(baseId, n) {
+  for (const it of [...G.p.inv]) {
+    if (n <= 0) break; if (it.base !== baseId) continue;
+    if (isEquipped(it)) continue;
+    const take = Math.min(n, it.qty || 1);
+    if (it.qty) { it.qty -= take; if (it.qty <= 0) G.p.inv.splice(G.p.inv.indexOf(it), 1); } else G.p.inv.splice(G.p.inv.indexOf(it), 1);
+    n -= take;
+  }
+  return n <= 0;
+}
+function removeItemUnit(it) {
+  if (it.qty > 1) it.qty--; else { unequip(it); G.p.inv.splice(G.p.inv.indexOf(it), 1); }
+}
+function isEquipped(it) { const e = G.p.equip; return it && (e.weapon === it.uid || e.armor === it.uid || e.art1 === it.uid || e.art2 === it.uid); }
+function unequip(it) { const e = G.p.equip; for (const k in e) if (e[k] === it.uid) e[k] = null; }
+function equipped(slot) { const u = G.p.equip[slot]; return u ? invFind(u) : null; }
+function totalWeight() { return G.p.inv.reduce((a, i) => a + itemWeight(i), 0); }
+
+/* ---------- derived stats ---------- */
+function getStats() {
+  const p = G.p, sk = p.skills;
+  const s = { armor: 0, radRes: 0, anomRes: 0, stealth: 0, carry: 45, regen: 0, speed: 0, loot: 0, maxhp: 100, radEmit: 0, thirst: 0, hunger: 0, dmg: 0, acc: 0, crit: 3, lifesteal: 0, fear: 0 };
+  s.maxhp += (p.level - 1) * 6 + sk.survival * 3;
+  s.speed += sk.survival * 4; s.hunger -= sk.survival * 4; s.thirst -= sk.survival * 4;
+  s.radRes += sk.science * 3; s.anomRes += sk.science * 4;
+  s.dmg += sk.combat * 5; s.acc += sk.combat * 2; s.loot += sk.scavenging * 5; s.carry += sk.survival * 2;
+  const add = m => { for (const k in m) if (k in s) s[k] += m[k]; };
+  p.perks.forEach(id => { const pk = D.PERK_BY_ID[id]; if (pk) add(pk[3]); });
+  const ar = equipped('armor');
+  if (ar) { const f = ar.dur > 0 ? 1 : 0.4; s.armor += ar.armor * f; s.radRes += ar.radRes * f; s.anomRes += ar.anomRes * f; s.stealth += ar.stealth; s.carry += ar.carry; add(ar.gmods); }
+  const wp = equipped('weapon'); if (wp) add(wp.gmods);
+  ['art1', 'art2'].forEach(k => { const a = equipped(k); if (a) add(a.gmods); });
+  p.buffs.forEach(b => { if (b.stat in s) s[b.stat] += b.val; });
+  if (countItem('backpack') > 0) s.carry += 20;
+  if (countItem('compass') > 0) s.speed += 8;
+  if (p.rad >= 50) s.maxhp -= Math.round((p.rad - 50) * 0.8);
+  s.maxhp = Math.max(20, s.maxhp);
+  s.radRes = clamp(s.radRes, -50, 90); s.anomRes = clamp(s.anomRes, -50, 90);
+  return s;
+}
+function weaponStats() {
+  const w = equipped('weapon');
+  if (!w) return { name: 'Fists', dmg: [1, 4], acc: 90, crit: 5, melee: true, bleed: 0, burn: 0, radDmg: 0, lifesteal: 0 };
+  const b = def(w); const broken = w.dur <= 0;
+  return { it: w, name: itemName(w), dmg: broken ? [Math.ceil(w.dmg[0] / 2), Math.ceil(w.dmg[1] / 2)] : w.dmg, acc: w.acc, crit: w.crit, melee: b.cat === 'melee', ammo: b.ammo, burst: b.burst || 1,
+    bleed: w.bleed, burn: w.burn, radDmg: w.radDmg, lifesteal: w.lifesteal, shock: w.shock, pistol: ['pm', 'revolver', 'smg', 'pipepistol', 'laserpistol'].includes(w.base) };
+}
+function carryCap() { return getStats().carry; }
+function overEncumbered() { return totalWeight() > carryCap(); }
+function travelSpeed() { // km/h
+  const s = getStats(); let v = 4.5 * (1 + s.speed / 100);
+  if (overEncumbered()) v *= 0.5; if (G.p.fatigue > 85) v *= 0.75; if (G.p.hp < getStats().maxhp * 0.25) v *= 0.8;
+  return Math.max(1, v);
+}
+function xpNeed(l) { return Math.floor(80 * Math.pow(l, 1.45)); }
+
+</script>
+<script>
+/* ===== world: new game, map, POIs, zones, time, travel ===== */
+'use strict';
+let map = null, playerMarker = null, routeLine = null;
+const layers = {};
+
+function newGame(name, lat, lng, placeName) {
+  const seed = Math.floor(Math.random() * 1e9);
+  G = {
+    v: 1, seed, name: name || 'Stalker', startName: placeName || 'Unknown', start: { lat, lng }, time: 8 * 60, nextUid: 1,
+    p: { lat, lng, hp: 100, food: 80, water: 80, rad: 0, fatigue: 10, xp: 0, level: 1, sp: 3, caps: 60, bleed: 0,
+      skills: { combat: 1, survival: 1, scavenging: 0, crafting: 0, medicine: 0, barter: 0, science: 0 },
+      perks: [], buffs: [], inv: [], equip: { weapon: null, armor: null, art1: null, art2: null }, recipes: [], at: null, pendingPerks: 0 },
+    locs: {}, zones: [], zoneCells: {}, fetchCenters: [], quests: [], rep: {}, log: [], kills: {}, camp: null,
+    stats: { km: 0, kills: 0, searched: 0, crafted: 0, quests: 0, artifacts: 0 },
+  };
+  for (const f in D.FACTIONS) G.rep[f] = D.FACTIONS[f].start;
+  const knife = addItem(makeItem('knife', { rarity: 0, fullDur: true }));
+  const pistol = addItem(makeItem('pipepistol', { rarity: 0, fullDur: true }));
+  G.p.equip.weapon = pistol.uid; void knife;
+  const hood = addItem(makeItem('hoodie', { rarity: 0, fullDur: true })); G.p.equip.armor = hood.uid;
+  giveItem('ammo9', 18); giveItem('bandage', 3); giveItem('beans', 2); giveItem('water', 3); giveItem('matches', 3);
+  giveItem('wood', 2); giveItem('cloth', 2); giveItem('antirad', 1);
+  // home bunker
+  const home = { id: 'home', type: 'bunker', name: 'Bunker 77 (Home)', lat, lng, real: false, searches: 1, respawnDay: 0, visited: true, revealed: true };
+  home.settle = { fac: 'loners', name: 'Bunker 77', trader: 'Quartermaster ' + pick(D.NICK), questDay: -1, quests: [], stockDay: -99, stock: [], caps: 400, home: true };
+  G.locs.home = home; G.p.at = 'home';
+  log(`You emerge from Bunker 77 near ${placeName}. The world above is dead... mostly.`, 'sys');
+  log('Tip: click the map or a marker to travel. Search locations for loot. Check the bunker for quests and trade.', 'sys');
+}
+
+/* ---------- logging ---------- */
+function log(msg, cls) {
+  G.log.unshift({ t: timeStr(), msg, cls: cls || '' });
+  if (G.log.length > 250) G.log.length = 250;
+  if (typeof onLog === 'function') onLog();
+}
+
+/* ---------- time ---------- */
+function passTime(min, o) {
+  o = o || {}; const p = G.p, s = getStats(), h = min / 60;
+  const oldDay = day();
+  const act = o.resting ? 0.5 : o.traveling ? 1.3 : 1;
+  p.food -= h * 3.0 * (1 + s.hunger / 100) * act;
+  p.water -= h * 4.2 * (1 + s.thirst / 100) * act;
+  if (o.resting) p.fatigue -= h * 12 * (1 + G.p.skills.survival * 0.05) * (countItem('sleepbag') ? 1.25 : 1);
+  else p.fatigue += h * (o.traveling ? 4.5 : 2.5) * (overEncumbered() ? 1.8 : 1);
+  if (s.radEmit > 0) p.rad += s.radEmit * h * (1 - s.radRes / 100);
+  p.rad -= h * 0.4;
+  if (p.food > 15 && p.water > 15 && p.rad < 90) p.hp += h * (0.8 + s.regen) * (o.resting ? 3 : 1);
+  else if (s.regen < 0) p.hp += h * s.regen;
+  if (hasPerk('radchild')) p.hp += h * Math.floor(p.rad / 20);
+  if (p.food <= 0) p.hp -= h * 4; if (p.water <= 0) p.hp -= h * 6; if (p.fatigue >= 100) p.hp -= h * 2; if (p.rad >= 100) p.hp -= h * 6;
+  if (p.bleed > 0) { p.hp -= Math.min(h, 1) * 6; p.bleed = Math.max(0, p.bleed - h * 2); }
+  G.time += min;
+  p.buffs = p.buffs.filter(b => b.until > G.time);
+  p.food = clamp(p.food, 0, 100); p.water = clamp(p.water, 0, 100); p.fatigue = clamp(p.fatigue, 0, 100); p.rad = clamp(p.rad, 0, 150);
+  p.hp = Math.min(p.hp, getStats().maxhp);
+  if (day() !== oldDay) log(`— Day ${day()} begins —`, 'sys');
+  if (p.food <= 0 && rnd() < 0.3) log('You are starving!', 'bad');
+  if (p.water <= 0 && rnd() < 0.3) log('You are dying of thirst!', 'bad');
+  if (p.hp <= 0) die(o.cause || (p.rad >= 100 ? 'radiation sickness' : p.water <= 0 ? 'dehydration' : p.food <= 0 ? 'starvation' : 'wounds'));
+}
+
+function gainXP(n) {
+  if (!n) return; const p = G.p; p.xp += Math.round(n);
+  while (p.xp >= xpNeed(p.level)) {
+    p.xp -= xpNeed(p.level); p.level++; p.sp += 2; p.pendingPerks++; p.hp += 15;
+    log(`LEVEL UP! You are now level ${p.level}. +2 skill points and a new perk.`, 'good');
+    if (typeof toast === 'function') toast(`LEVEL ${p.level}!`);
+  }
+}
+function changeRep(f, n) {
+  if (!G.rep[f] && G.rep[f] !== 0) return; G.rep[f] = clamp(G.rep[f] + n, -100, 100);
+  if (n) log(`${D.FACTIONS[f].name} reputation ${n > 0 ? '+' : ''}${n}`, n > 0 ? 'good' : 'bad');
+}
+
+/* ---------- danger & zones ---------- */
+function distFromStartKm(lat, lng) { return dist(lat, lng, G.start.lat, G.start.lng) / 1000; }
+function zonesAt(lat, lng) { return G.zones.filter(z => dist(lat, lng, z.lat, z.lng) <= z.r); }
+function dangerAt(lat, lng) {
+  let d = 1 + distFromStartKm(lat, lng) * 0.35;
+  zonesAt(lat, lng).forEach(z => d += z.int * 0.6);
+  if (isNight() && !hasPerk('nightowl')) d += 0.8;
+  return round1(Math.min(d, 12));
+}
+const ZLAT = 0.018, ZLNG = 0.032;
+function genZonesAround(lat, lng) {
+  const ci = Math.floor(lat / ZLAT), cj = Math.floor(lng / ZLNG);
+  for (let i = ci - 3; i <= ci + 3; i++) for (let j = cj - 3; j <= cj + 3; j++) {
+    const key = i + ':' + j; if (G.zoneCells[key]) continue; G.zoneCells[key] = 1;
+    withSeed(hashStr(G.seed + 'z' + key), () => {
+      const n = rnd() < 0.5 ? 1 : rnd() < 0.25 ? 2 : 0;
+      for (let k = 0; k < n; k++) {
+        const zl = (i + rnd()) * ZLAT, zg = (j + rnd()) * ZLNG;
+        const dk = distFromStartKm(zl, zg); if (dk < 0.7) continue;
+        const type = wpick([['rad', 0, 40], ['anomaly', 0, 30], ['mutant', 0, 16], ['raider', 0, 14]]) [0];
+        const z = { id: 'z' + key + '_' + k, type, lat: zl, lng: zg, r: Math.round(140 + rnd() * 420), int: clamp(1 + Math.floor(rnd() * 2 + dk / 4), 1, 5),
+          name: (type === 'raider' ? 'Rust Gang ' + pick(['Turf', 'Hideout', 'Den', 'Checkpoint']) : 'The ' + pick(D.ZONE_ADJ) + ' ' + pick(D.ZONE_NOUN)) };
+        G.zones.push(z);
+      }
+    });
+  }
+}
+function zoneLabel(z) { return { rad: '☢ Radiation', anomaly: '✺ Anomaly field', mutant: '☠ Mutant nest', raider: '⚔ Raider territory' }[z.type]; }
+
+/* ---------- POIs ---------- */
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+function overpassQuery(lat, lng, r) {
+  const A = `(around:${r},${lat},${lng})`;
+  return `[out:json][timeout:25];(
+node${A}[amenity~"^(pharmacy|hospital|clinic|doctors|dentist|veterinary|fuel|police|school|kindergarten|university|college|restaurant|cafe|bar|pub|fast_food|bank|place_of_worship|fire_station|library|post_office|townhall|marketplace|cinema|theatre|prison)$"];
+node${A}[shop~"^(supermarket|convenience|hardware|doityourself|car_repair|car_parts|electronics|clothes|outdoor|sports|chemist|butcher|bakery|alcohol|mall|department_store|gas|hunting|weapons|kiosk|mobile_phone|computer)$"];
+way${A}[shop~"^(supermarket|mall|department_store|hardware|doityourself)$"];
+way${A}[amenity~"^(hospital|school|university|college|fuel|prison|place_of_worship|police|fire_station|townhall)$"];
+nwr${A}[military];
+way${A}[landuse~"^(industrial|military)$"];
+way${A}[man_made~"^(works|water_tower|wastewater_plant|water_works)$"];
+nwr${A}[power~"^(plant|substation)$"];
+node${A}[railway~"^(station|halt)$"];
+nwr${A}[tourism~"^(museum|hotel|motel|hostel)$"];
+);out center 600;`;
+}
+async function fetchOverpass(lat, lng, r) {
+  const q = overpassQuery(lat, lng, r); let lastErr;
+  for (const url of OVERPASS) {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 22000);
+    try {
+      const res = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal });
+      clearTimeout(to);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      return (j.elements || []).map(e => {
+        const t = e.tags || {}; const type = D.tagToPoi(t); const la = e.lat != null ? e.lat : e.center && e.center.lat; const lo = e.lon != null ? e.lon : e.center && e.center.lon;
+        if (!type || la == null) return null;
+        return ['o' + e.type[0] + e.id, type, t.name || t['name:en'] || '', +la.toFixed(6), +lo.toFixed(6)];
+      }).filter(Boolean);
+    } catch (e) { clearTimeout(to); lastErr = e; }
+  }
+  throw lastErr || new Error('Overpass failed');
+}
+function cacheGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function cacheSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* quota */ } }
+
+let scanning = false;
+async function ensurePOIs(force) {
+  const { lat, lng } = G.p;
+  if (!force && G.fetchCenters.some(c => dist(c.lat, c.lng, lat, lng) < 1300)) return;
+  if (scanning) return; scanning = true;
+  const cLat = Math.round(lat * 100) / 100, cLng = Math.round(lng * 100) / 100;
+  G.fetchCenters.push({ lat: cLat, lng: cLng });
+  setScan('Scanning area for real locations…');
+  const key = 'wl_poi_' + cLat.toFixed(2) + '_' + cLng.toFixed(2);
+  let els = cacheGet(key), src = 'cache';
+  if (!els) {
+    try { els = await fetchOverpass(cLat, cLng, 2200); src = 'OpenStreetMap'; if (els.length) cacheSet(key, els); }
+    catch (e) { els = null; src = 'none'; }
+  }
+  let added = 0;
+  if (els) added = addOsmLocs(els);
+  if (!els) log('Overpass (OpenStreetMap) unreachable — generating procedural ruins instead.', 'warn');
+  if (added < 25) addProcLocs(cLat, cLng, 30 - added);
+  ensureSettlement(cLat, cLng);
+  if (els) log(`Scanner: ${added} real locations found nearby (${src}).`, 'sys');
+  scanning = false; setScan('');
+  revealNear(); renderWorld(); saveGame(true);
+}
+function setScan(t) { const e = $('#scan'); if (e) { e.textContent = t; e.style.display = t ? 'block' : 'none'; } }
+function addOsmLocs(els) {
+  // prioritise named + interesting
+  const prio = { military: 5, hospital: 4, police: 4, industrial: 3, factory: 4, power: 4, pharmacy: 4, fuel: 3, supermarket: 3, hardware: 4, railway: 4, prison: 5, firestation: 3, hunting: 5, school: 2, university: 3, church: 2, townhall: 3, bank: 3 };
+  const list = els.filter(e => !G.locs[e[0]]).map(e => ({ e, s: (e[2] ? 3 : 0) + (prio[e[1]] || 1) + rnd() }));
+  list.sort((a, b) => b.s - a.s);
+  let n = 0; const placed = Object.values(G.locs);
+  for (const { e } of list) {
+    if (n >= 220) break;
+    const [id, type, name, la, lo] = e;
+    if (placed.some(l => Math.abs(l.lat - la) < 0.00035 && Math.abs(l.lng - lo) < 0.0006)) continue;
+    const loc = makeLoc(id, type, name || ('Abandoned ' + D.POI[type].label), la, lo, true);
+    G.locs[id] = loc; placed.push(loc); n++;
+  }
+  return n;
+}
+function makeLoc(id, type, name, lat, lng, real) {
+  return withSeed(hashStr(G.seed + id), () => {
+    const loc = { id, type, name, lat, lng, real, searches: ri(2, 4), respawnDay: 0, visited: false, revealed: false };
+    const P = D.POI[type];
+    if (P.sc && rnd() * 100 < P.sc * 0.3) makeSettlement(loc);
+    return loc;
+  });
+}
+function makeSettlement(loc) {
+  const fac = wpick([['loners', 0, 40], ['order', 0, 20], ['freedom', 0, 20], ['science', 0, 18]])[0];
+  loc.settle = { fac, name: `${pick(D.SETTLE_NAMES)} ${loc.name.length < 22 ? '@ ' + loc.name : pick(D.NICK)}`, trader: `${pick(D.FIRST)} "${pick(D.NICK)}"`, questDay: -1, quests: [], stockDay: -99, stock: [], caps: ri(250, 700) };
+}
+const PROC_TYPES = [['ruin', 0, 8], ['wreck', 0, 6], ['camp', 0, 4], ['farm', 0, 4], ['shop', 0, 3], ['fuel', 0, 2], ['industrial', 0, 2], ['pharmacy', 0, 2], ['school', 0, 1], ['church', 0, 1], ['military', 0, 1], ['police', 0, 1], ['supermarket', 0, 2], ['hardware', 0, 1], ['clinic', 0, 1], ['railway', 0, 1]];
+const PROC_ADJ = ['Old', 'Burnt', 'Collapsed', 'Silent', 'Overgrown', 'Looted', 'Flooded', 'Northern', 'Eastern', 'Lonely', 'Crooked', 'Sunken', 'Rusty'];
+function addProcLocs(lat, lng, n) {
+  withSeed(hashStr(G.seed + 'proc' + lat + ',' + lng), () => {
+    for (let i = 0; i < n; i++) {
+      const type = wpick(PROC_TYPES)[0]; const a = rnd() * Math.PI * 2, r = 150 + Math.sqrt(rnd()) * 2100;
+      const la = lat + (r * Math.cos(a)) / 111320, lo = lng + (r * Math.sin(a)) / (111320 * Math.cos(lat * Math.PI / 180));
+      const id = `p${lat}_${lng}_${i}`; if (G.locs[id]) continue;
+      const nm = `${pick(PROC_ADJ)} ${D.POI[type].label}${rnd() < 0.3 ? ' #' + ri(2, 99) : ''}`;
+      G.locs[id] = makeLoc(id, type, nm, +la.toFixed(6), +lo.toFixed(6), false);
+    }
+  });
+}
+function ensureSettlement(lat, lng) {
+  const near = Object.values(G.locs).filter(l => dist(l.lat, l.lng, lat, lng) < 2300);
+  if (near.some(l => l.settle && !l.settle.home)) return;
+  near.splice(0, near.length, ...near.filter(l => l.id !== 'home' && dist(l.lat, l.lng, G.start.lat, G.start.lng) > 300));
+  const cand = near.filter(l => D.POI[l.type].sc > 0).sort((a, b) => D.POI[b.type].sc - D.POI[a.type].sc)[0] || near[0];
+  if (cand) withSeed(hashStr(G.seed + 'set' + cand.id), () => makeSettlement(cand));
+}
+function revealNear() {
+  const r = 550 + G.p.skills.scavenging * 60;
+  Object.values(G.locs).forEach(l => { if (!l.revealed && dist(l.lat, l.lng, G.p.lat, G.p.lng) < r) l.revealed = true; });
+}
+function nearestLoc(lat, lng, maxD) {
+  let best = null, bd = maxD || 1e9;
+  for (const l of Object.values(G.locs)) { const d = dist(lat, lng, l.lat, l.lng); if (d < bd) { bd = d; best = l; } }
+  return best;
+}
+function currentLoc() { return G.p.at ? G.locs[G.p.at] : null; }
+function hasWorkbench() { const l = currentLoc(); return !!(l && (l.settle || D.POI[l.type].bench)); }
+function hasCampfire() { return !!(G.camp && dist(G.camp.lat, G.camp.lng, G.p.lat, G.p.lng) < 60) || !!(currentLoc() && currentLoc().settle); }
+
+/* ---------- map ---------- */
+function initMap() {
+  if (map) { map.remove(); map = null; }
+  map = L.map('map', { zoomControl: true, worldCopyJump: true, preferCanvas: false, tapTolerance: 20, bounceAtZoomLimits: false, fadeAnimation: !(typeof COARSE !== 'undefined' && COARSE) }).setView([G.p.lat, G.p.lng], 15);
+  // Keyless, referer-free tile providers (work from file://). CARTO now requires an API key.
+  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+  const esriAttr = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · POIs: Overpass API';
+  const dark = L.layerGroup([
+    L.tileLayer(ESRI + 'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 16, maxZoom: 19, attribution: esriAttr }),
+    L.tileLayer(ESRI + 'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 16, maxZoom: 19 }),
+  ]);
+  const sat = L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 18, maxZoom: 19, attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics · POIs: Overpass API' });
+  const street = L.tileLayer(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 18, maxZoom: 19, attribution: esriAttr });
+  const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { subdomains: 'abc', maxNativeZoom: 17, maxZoom: 19, attribution: 'Map data &copy; OpenStreetMap contributors, SRTM · Style &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)' });
+  const bases = { 'Wasteland (dark)': dark, 'Satellite ruins': sat, 'Street map': street, 'Topographic': topo };
+  const chosen = bases[localStorage.getItem('wl_basemap')] || dark; chosen.addTo(map);
+  L.control.layers(bases, null, { position: 'topright' }).addTo(map);
+  map.on('baselayerchange', e => { try { localStorage.setItem('wl_basemap', e.name); } catch (er) { } });
+  layers.zones = L.layerGroup().addTo(map);
+  layers.locs = L.layerGroup().addTo(map);
+  layers.misc = L.layerGroup().addTo(map);
+  playerMarker = L.marker([G.p.lat, G.p.lng], { icon: L.divIcon({ className: 'pl-icon', html: '<div class="pl-dot"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 2000, interactive: false }).addTo(map);
+  map.on('click', onMapClick);
+}
+function locIcon(l) {
+  const P = D.POI[l.type]; const q = G.quests.some(q => q.status === 'active' && q.locId === l.id);
+  const looted = l.searches <= 0 && day() < l.respawnDay;
+  let cls = 'loc-icon' + (l.settle ? ' settle' : '') + (looted ? ' looted' : '') + (q ? ' quest' : '') + (!l.revealed && !q ? ' unk' : '');
+  const g = l.settle ? '⌂' : (l.revealed || q) ? P.g : '?';
+  const c = l.settle ? D.FACTIONS[l.settle.fac].color : P.c;
+  const sz = (l.settle ? 26 : 20) + (typeof COARSE !== 'undefined' && COARSE ? 8 : 0);
+  return L.divIcon({ className: cls, html: `<div style="--c:${c}">${g}</div>`, iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2] });
+}
+function renderWorld() {
+  if (!map) return;
+  layers.zones.clearLayers(); layers.locs.clearLayers(); layers.misc.clearLayers();
+  const { lat, lng } = G.p;
+  const col = { rad: '#d4ff00', anomaly: '#b266ff', mutant: '#ff3b3b', raider: '#ff8c1a' };
+  G.zones.forEach(z => {
+    if (dist(lat, lng, z.lat, z.lng) > 9000) return;
+    const c = L.circle([z.lat, z.lng], { radius: z.r, color: col[z.type], weight: 1.5, fillColor: col[z.type], fillOpacity: 0.12 + z.int * 0.03, className: 'zone zone-' + z.type, interactive: false });
+    c.addTo(layers.zones);
+  });
+  Object.values(G.locs).forEach(l => {
+    if (dist(lat, lng, l.lat, l.lng) > 7000) return;
+    const m = L.marker([l.lat, l.lng], { icon: locIcon(l), title: l.revealed ? l.name : 'Unknown location' });
+    m.on('click', () => openLocPopup(l, m));
+    m.addTo(layers.locs);
+  });
+  // quest targets for zones
+  G.quests.filter(q => q.status === 'active' && q.zoneId).forEach(q => {
+    const z = G.zones.find(z => z.id === q.zoneId);
+    if (z) L.marker([z.lat, z.lng], { icon: L.divIcon({ className: 'qz-icon', html: '<div>!</div>', iconSize: [22, 22], iconAnchor: [11, 11] }), interactive: false }).addTo(layers.misc);
+  });
+  if (G.camp) L.marker([G.camp.lat, G.camp.lng], { icon: L.divIcon({ className: 'camp-icon', html: '<div>🔥</div>', iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false }).addTo(layers.misc);
+  playerMarker.setLatLng([lat, lng]);
+  applyNight();
+}
+function applyNight() {
+  const h = hourOf(); let b = 1;
+  if (h >= 21 || h < 5) b = 0.45; else if (h >= 19) b = 1 - (h - 19) / 2 * 0.55; else if (h < 7) b = 0.45 + (h - 5) / 2 * 0.55;
+  document.documentElement.style.setProperty('--night', b.toFixed(2));
+}
+
+function travelEstimate(lat, lng) {
+  const d = dist(G.p.lat, G.p.lng, lat, lng); const min = d / 1000 / travelSpeed() * 60;
+  return { d, min };
+}
+function onMapClick(e) {
+  if (document.body.classList.contains('sheet-open')) { closeSheet(); return; }
+  if (G.travel || G.combat || G.dead) return;
+  const { lat, lng } = e.latlng; const est = travelEstimate(lat, lng);
+  const zs = zonesAt(lat, lng);
+  const html = `<div class="pop"><b>Unmarked ground</b><br>${fmtDist(est.d)} · ~${fmtMin(est.min)} on foot<br>Danger: ${dangerAt(lat, lng)}${zs.length ? '<br>' + zs.map(z => `<span class="z-${z.type}">${zoneLabel(z)}: ${esc(z.name)} (lvl ${z.int})</span>`).join('<br>') : ''}<br>
+  <button class="btn" onclick="startTravel(${lat},${lng},null)">▶ Travel here</button></div>`;
+  L.popup({ className: 'term-pop' }).setLatLng(e.latlng).setContent(html).openOn(map);
+}
+function openLocPopup(l, m) {
+  if (G.travel || G.combat || G.dead) return;
+  const P = D.POI[l.type]; const est = travelEstimate(l.lat, l.lng);
+  const here = G.p.at === l.id;
+  const known = l.revealed || G.quests.some(q => q.locId === l.id);
+  const looted = l.searches <= 0 && day() < l.respawnDay;
+  const html = `<div class="pop"><b>${known ? esc(l.name) : 'Unknown location'}</b><br>
+   <span class="muted">${known ? P.label + (l.real ? ' · real place' : '') : 'Get closer to identify'}</span>
+   ${l.settle ? `<br><span style="color:${D.FACTIONS[l.settle.fac].color}">⌂ ${esc(l.settle.name)} — ${D.FACTIONS[l.settle.fac].name}</span>` : ''}
+   ${known && looted ? '<br><span class="neg">Picked clean (for now)</span>' : ''}
+   ${G.quests.filter(q => q.status === 'active' && q.locId === l.id).map(q => `<br><span class="qtxt">! ${esc(q.title)}</span>`).join('')}
+   <br>${here ? 'You are here.' : `${fmtDist(est.d)} · ~${fmtMin(est.min)} · danger ${dangerAt(l.lat, l.lng)}`}<br>
+   ${here ? `<button class="btn" onclick="map.closePopup();openLocPanel()">Enter</button>` : `<button class="btn" onclick="startTravel(${l.lat},${l.lng},'${l.id}')">▶ Travel here</button>`}</div>`;
+  L.popup({ className: 'term-pop', offset: [0, -6] }).setLatLng([l.lat, l.lng]).setContent(html).openOn(map);
+}
+
+/* ---------- travel ---------- */
+let travelTimer = null;
+function startTravel(lat, lng, locId) {
+  if (G.travel || G.combat || G.dead) return;
+  map.closePopup(); closeModal(); if (typeof closeSheet === 'function') closeSheet();
+  const d = dist(G.p.lat, G.p.lng, lat, lng);
+  if (d < 5) { if (locId) arrive(locId); return; }
+  const steps = Math.min(80, Math.max(2, Math.ceil(d / 150)));
+  G.travel = { fromLat: G.p.lat, fromLng: G.p.lng, lat, lng, locId, steps, i: 0, stepLen: d / steps, entered: {} };
+  G.p.at = null; G.camp = null;
+  if (routeLine) routeLine.remove();
+  routeLine = L.polyline([[G.p.lat, G.p.lng], [lat, lng]], { color: '#5dff6a', weight: 2, dashArray: '6 6', opacity: 0.7, interactive: false }).addTo(map);
+  renderLocPanel();
+  travelTimer = setInterval(travelStep, 70);
+}
+function stopTravel() {
+  if (travelTimer) clearInterval(travelTimer); travelTimer = null;
+  if (G) G.travel = null; if (routeLine) { routeLine.remove(); routeLine = null; }
+}
+function travelStep() {
+  const t = G.travel; if (!t) return stopTravel();
+  t.i++; const f = t.i / t.steps;
+  G.p.lat = t.fromLat + (t.lat - t.fromLat) * f; G.p.lng = t.fromLng + (t.lng - t.fromLng) * f;
+  playerMarker.setLatLng([G.p.lat, G.p.lng]);
+  if (!map.getBounds().pad(-0.15).contains([G.p.lat, G.p.lng])) map.panTo([G.p.lat, G.p.lng], { animate: true, duration: 0.3 });
+  const km = t.stepLen / 1000; const s = getStats();
+  passTime(km / travelSpeed() * 60, { traveling: true });
+  G.stats.km += km;
+  if (G.dead) return stopTravel();
+  // zones
+  const zs = zonesAt(G.p.lat, G.p.lng); let encMul = 1, kind = null;
+  for (const z of zs) {
+    if (!t.entered[z.id]) { t.entered[z.id] = 1; log(`Entering ${zoneLabel(z)}: ${z.name} (level ${z.int})`, 'warn'); }
+    if (z.type === 'rad') { const g = z.int * 2.2 * (km / 0.15) * (1 - s.radRes / 100) * (countItem('geiger') ? 0.85 : 1); G.p.rad = clamp(G.p.rad + g, 0, 150); }
+    if (z.type === 'anomaly' && rnd() < 0.07 * z.int) { pauseTravel(); return encounterAnomaly(z); }
+    if (z.type === 'mutant') { encMul *= 2.5; kind = 'mutant'; }
+    if (z.type === 'raider') { encMul *= 2.5; kind = 'raider'; }
+  }
+  if (G.p.rad >= 100 && rnd() < 0.1) log('Your Geiger counter screams. Radiation sickness is killing you!', 'bad');
+  if (hasPerk('forager') && rnd() < 0.04) { const it = giveItem(pick(['herbs', 'apples', 'herbs', 'wood']), 1); log(`Foraged: ${itemName(it)}.`, 'good'); }
+  const danger = dangerAt(G.p.lat, G.p.lng);
+  const escort = G.quests.some(q => q.status === 'active' && q.type === 'escort');
+  let chance = km * 0.32 * encMul * (0.7 + danger * 0.12) * (1 - Math.min(60, s.stealth) / 120) * (isNight() ? 1.4 : 1) * (escort ? 1.6 : 1);
+  if (distFromStartKm(G.p.lat, G.p.lng) < 0.35) chance *= 0.2;
+  if (rnd() < chance) { pauseTravel(); return randomEncounter(kind, danger); }
+  if (t.i >= t.steps) { const id = t.locId; const lt = t.lat, lg = t.lng; stopTravel(); G.p.lat = lt; G.p.lng = lg; return arrive(id); }
+  renderHUD();
+}
+function pauseTravel() { // stop mid-route due to an event
+  stopTravel(); G.p.at = null; genZonesAround(G.p.lat, G.p.lng); revealNear(); renderWorld(); renderAll();
+}
+function arrive(locId) {
+  let loc = locId ? G.locs[locId] : nearestLoc(G.p.lat, G.p.lng, 45);
+  if (loc) {
+    G.p.at = loc.id; G.p.lat = loc.lat; G.p.lng = loc.lng;
+    if (!loc.visited) { loc.visited = true; gainXP(4); }
+    loc.revealed = true;
+  }
+  genZonesAround(G.p.lat, G.p.lng); revealNear();
+  ensurePOIs();
+  renderWorld(); renderAll();
+  if (loc) { log(`Arrived at ${loc.name}.`); questArrive(loc); }
+  else log(`You stop at ${G.p.lat.toFixed(4)}, ${G.p.lng.toFixed(4)}.`);
+  if (!G.combat && !G.dead && loc) openLocPanel();
+  saveGame(true);
+}
+
+</script>
+<script>
+/* ===== actions: loot, search, encounters, combat, crafting, trade, quests, rest, save ===== */
+'use strict';
+const ITEM_LIST = () => Object.values(D.ITEMS).filter(b => !['schematic', 'quest'].includes(b.cat));
+function itemsByTag(spec) {
+  const [main, sub] = spec.split(':');
+  return ITEM_LIST().filter(b => (b.cat === main || b.tags.includes(main)) && (!sub || b.tags.includes(sub) || b.cat === sub));
+}
+function randomItemByTag(spec, danger, luck) {
+  if (spec === 'schematic') { const known = G.p.recipes; const pool = D.SCHEMATICS.filter(r => !known.includes(r)); return makeItem('schematic', { recipe: pick(pool.length ? pool : D.SCHEMATICS) }); }
+  let c = itemsByTag(spec); if (!c.length) c = itemsByTag(spec.split(':')[0]); if (!c.length) c = itemsByTag('junk');
+  const b = wpick(c, x => 1 / (1 + x.v / (45 * danger)));
+  let qty = 1;
+  if (b.cat === 'ammo') qty = Math.round(ri(4, 14) * (hasPerk('scrounger') ? 1.5 : 1) * (b.id === 'cells' ? 0.6 : 1));
+  else if (b.cat === 'comp') qty = ri(1, 3);
+  else if (b.cat === 'junk' && !b.tags.includes('valuable')) qty = rnd() < 0.25 ? 2 : 1;
+  return makeItem(b.id, { qty, luck: luck + danger * 3 });
+}
+function genLoot(type, danger, extraRolls) {
+  const s = getStats(); const P = D.POI[type] || D.POI.ruin;
+  const rolls = 1 + ri(1, 2) + Math.floor(G.p.skills.scavenging / 2) + (countItem('lockpick') ? 1 : 0) + (extraRolls || 0);
+  const out = [];
+  for (let i = 0; i < rolls; i++) {
+    const tag = wpick(P.loot, x => x[1])[0];
+    if (tag === 'artifact') { out.push(makeItem(pick(itemsByTag('artifact')).id, { luck: s.loot })); continue; }
+    out.push(randomItemByTag(tag, danger, s.loot));
+  }
+  if (rnd() < 0.08 + s.loot / 400) out.push(randomItemByTag(pick(['book', 'schematic', 'valuable']), danger, s.loot));
+  return { items: out, caps: rnd() < 0.3 ? Math.round(ri(2, 12) * (1 + danger * 0.3)) : 0 };
+}
+
+/* ---------- searching ---------- */
+function searchLoc() {
+  const l = currentLoc(); if (!l || G.combat || G.dead) return;
+  if (l.searches <= 0) { if (day() >= l.respawnDay) l.searches = ri(1, 3); else return toast('Picked clean. Come back in a few days.'); }
+  passTime(Math.max(10, 30 - G.p.skills.scavenging * 2)); if (G.dead) return;
+  l.searches--; if (l.searches <= 0) l.respawnDay = day() + ri(3, 6);
+  G.stats.searched++; gainXP(3);
+  const danger = dangerAt(l.lat, l.lng) + D.POI[l.type].danger;
+  const loot = genLoot(l.type, danger);
+  const ambush = !l.settle && rnd() < 0.1 + danger * 0.035;
+  log(`You search ${l.name}…`);
+  if (ambush) {
+    const kind = { military: 'raider', police: 'raider', bank: 'raider', prison: 'raider', hospital: 'mutant', clinic: 'mutant', industrial: null, factory: 'robot', power: 'robot' }[l.type] || null;
+    const grp = makeGroup(danger, kind);
+    log(`Something was already here: ${grp.map(e => e.name).join(', ')}!`, 'bad');
+    startCombat(grp, { onWin: () => showLoot(loot, 'Search: ' + l.name) });
+  } else showLoot(loot, 'Search: ' + l.name);
+  renderAll(); saveGame(true);
+}
+function huntArtifacts() {
+  const z = zonesAt(G.p.lat, G.p.lng).find(z => z.type === 'anomaly'); if (!z || G.combat || G.dead) return;
+  const s = getStats(); passTime(45); if (G.dead) return;
+  if (rnd() < 0.35) {
+    const dmg = Math.round(ri(5, 14) * z.int * (1 - s.anomRes / 100) * (hasPerk('cautious') ? 0.6 : 1));
+    G.p.hp -= dmg; log(`An anomaly discharges! -${dmg} HP.`, 'bad'); if (G.p.hp <= 0) return die('an anomaly');
+  }
+  const ch = 0.22 + G.p.skills.science * 0.04 + (countItem('detector') ? 0.25 : 0) + (hasPerk('anomalysense') ? 0.3 : 0) + z.int * 0.03;
+  if (rnd() < ch) {
+    const a = makeItem(pick(itemsByTag('artifact')).id, { luck: s.loot + z.int * 8 + G.p.skills.science * 4 });
+    G.stats.artifacts++; gainXP(15 + z.int * 5);
+    log(`Your detector chirps… you found an artifact: ${itemName(a)}!`, 'good');
+    showLoot({ items: [a], caps: 0 }, 'Artifact found!');
+    questArtifact(z);
+  } else log('You comb the anomaly field but find nothing this time.');
+  renderAll(); saveGame(true);
+}
+
+/* ---------- rest & camp ---------- */
+function makeCamp() {
+  if (G.camp && hasCampfire()) return toast('Campfire is already burning.');
+  if (countItem('wood') < 2 || countItem('matches') < 1) return toast('Need 2 Wood and 1 Matches.');
+  removeQty('wood', 2); removeQty('matches', 1); passTime(15);
+  G.camp = { lat: G.p.lat, lng: G.p.lng }; log('You build a small campfire. You can cook and rest a bit safer here.', 'good');
+  renderWorld(); renderAll();
+}
+function rest(hours) {
+  if (G.combat || G.dead || G.travel) return;
+  const l = currentLoc(); const safe = l && l.settle;
+  if (safe && !l.settle.home && hours >= 8) { if (G.p.caps < 10) return toast('A bunk costs 10 caps.'); G.p.caps -= 10; }
+  const danger = dangerAt(G.p.lat, G.p.lng);
+  for (let h = 0; h < hours; h++) {
+    passTime(60, { resting: true }); if (G.dead) return;
+    if (!safe) {
+      let ch = 0.02 + danger * 0.012; if (G.camp && hasCampfire()) ch *= 0.6; if (countItem('sleepbag')) ch *= 0.7;
+      if (rnd() < ch) { log(`Your rest is interrupted after ${h + 1}h!`, 'bad'); renderAll(); return startCombat(makeGroup(danger), { ambush: true }); }
+    }
+  }
+  if (safe) { G.p.hp = Math.min(getStats().maxhp, G.p.hp + hours * 4); }
+  log(`You rest for ${hours} hour${hours > 1 ? 's' : ''}.`);
+  renderWorld(); renderAll(); saveGame(true);
+}
+
+/* ---------- using items ---------- */
+function useItem(uidv) {
+  const it = invFind(uidv); if (!it) return; const b = def(it), p = G.p;
+  if (['food', 'drink', 'med', 'chem'].includes(b.cat)) {
+    const e = b.eff;
+    if (e.food) p.food = clamp(p.food + e.food, 0, 100);
+    if (e.water) p.water = clamp(p.water + e.water, 0, 100);
+    if (e.hp) p.hp = Math.min(getStats().maxhp, p.hp + (e.hp > 0 && b.cat === 'med' ? e.hp * (1 + p.skills.medicine * 0.1) : e.hp));
+    if (e.rad) { let r = e.rad; if (r > 0 && hasPerk('leadbelly')) r *= 0.4; if (r > 0 && b.id === 'dirtywater' && countItem('waterfilter')) r = 0; p.rad = clamp(p.rad + r, 0, 150); }
+    if (e.fatigue) p.fatigue = clamp(p.fatigue + e.fatigue, 0, 100);
+    if (e.bleed) p.bleed = 0;
+    if (e.buff) { p.buffs = p.buffs.filter(x => x.stat !== e.buff[0]); p.buffs.push({ stat: e.buff[0], val: e.buff[1], until: G.time + e.buff[2] }); }
+    log(`Used ${itemName(it)}.`);
+    removeItemUnit(it);
+    if (b.id === 'water' || b.id === 'purewater' || b.id === 'cola' || b.id === 'vodka' || b.id === 'beer') { if (rnd() < 0.5) giveItem('bottle', 1); }
+    if (b.id === 'beans' && rnd() < 0.5) giveItem('tincan', 1);
+  } else if (b.cat === 'book') {
+    if (p.skills[b.skill] >= 10) return toast('You already mastered that skill.');
+    p.skills[b.skill]++; log(`You read ${b.name}. ${D.SKILLS[b.skill][0]} +1!`, 'good'); removeItemUnit(it);
+  } else if (b.cat === 'schematic') {
+    if (p.recipes.includes(it.recipe)) { toast('Already known — sell it.'); return; }
+    p.recipes.push(it.recipe); log(`Learned recipe: ${recipeName(D.RECIPE_BY_ID[it.recipe])}.`, 'good'); removeItemUnit(it); gainXP(10);
+  } else if (b.id === 'repairkit') {
+    const w = equipped('weapon'), a = equipped('armor'); if (!w && !a) return toast('Nothing equipped to repair.');
+    const amt = 50 * (hasPerk('mrfixit') ? 1.5 : 1) * (1 + p.skills.crafting * 0.05);
+    [w, a].forEach(x => { if (x) x.dur = Math.min(x.maxDur, x.dur + amt); }); log('Repaired your gear.', 'good'); removeItemUnit(it);
+  } else if (b.id === 'modkit') {
+    const w = equipped('weapon'); if (!w) return toast('Equip a weapon first.');
+    const a = wpick(D.WPN_PREFIX.filter(x => !(x[1].dmg < 0) && !(x[1].value < 0) && !w.affixes.includes(x[0])));
+    w.affixes.push(a[0]); const m = a[1];
+    if (m.dmg) w.dmg = w.dmg.map(v => Math.round(v * (1 + m.dmg / 100)));
+    w.acc += m.acc || 0; w.crit += m.crit || 0; w.bleed += m.bleed || 0; w.burn += m.burn || 0; w.radDmg += m.radDmg || 0; w.lifesteal += m.lifesteal || 0;
+    if (m.durab) { w.maxDur = Math.round(w.maxDur * (1 + m.durab / 100)); }
+    for (const k in m) if (!W_CONSUMED.includes(k)) w.gmods[k] = (w.gmods[k] || 0) + m[k];
+    w.name = a[0] + ' ' + w.name; w.v = Math.round(w.v * 1.25);
+    if (w.rarity < 4 && rnd() < 0.25) { w.rarity++; log('The mod pushes the weapon to a higher tier!', 'good'); }
+    log(`Modded weapon: ${w.name}.`, 'good'); removeItemUnit(it);
+  } else if (b.id === 'plating') {
+    const a = equipped('armor'); if (!a) return toast('Equip armor first.');
+    a.armor += 4; a.w = round1(a.w + 0.8); a.v = Math.round(a.v * 1.15); if (!/Plated/.test(a.name)) a.name = 'Plated ' + a.name;
+    log(`Reinforced ${a.name} (+4 armor).`, 'good'); removeItemUnit(it);
+  } else if (b.cat === 'throw') return toast('Throwables are used in combat.');
+  else return;
+  renderAll(); saveGame(true);
+}
+function equipItem(uidv) {
+  const it = invFind(uidv); if (!it) return; const b = def(it), e = G.p.equip;
+  if (b.cat === 'melee' || b.cat === 'ranged') e.weapon = it.uid;
+  else if (b.cat === 'armor') e.armor = it.uid;
+  else if (b.cat === 'artifact') { if (!e.art1) e.art1 = it.uid; else if (!e.art2) e.art2 = it.uid; else e.art1 = it.uid; }
+  log(`Equipped ${itemName(it)}.`); renderAll();
+}
+function unequipItem(uidv) { const it = invFind(uidv); if (it) { unequip(it); renderAll(); } }
+function dropItem(uidv, all) {
+  const it = invFind(uidv); if (!it) return; if (it.base === 'package') return toast("Can't drop a quest item.");
+  unequip(it); if (all || !it.qty || it.qty <= 1) G.p.inv.splice(G.p.inv.indexOf(it), 1); else it.qty--;
+  renderAll();
+}
+function scrapItem(uidv, all) {
+  const it = invFind(uidv); if (!it) return; const b = def(it);
+  let n = all && it.qty ? it.qty : 1; const got = {};
+  const addc = (k, q) => { got[k] = (got[k] || 0) + q; };
+  for (let i = 0; i < n; i++) {
+    if (b.scrap) for (const k in b.scrap) addc(k, b.scrap[k] + (rnd() < G.p.skills.crafting * 0.06 ? 1 : 0));
+    else if (b.cat === 'melee' || b.cat === 'ranged') { addc('scrap', ri(1, 3) + (it.rarity || 0)); addc('screws', ri(0, 2)); if (b.cat === 'ranged') { addc('springs', ri(1, 2)); if (rnd() < 0.5) addc('gunpowder', 1); } if (b.tags.includes('science')) addc('circuit', ri(1, 2)); }
+    else if (b.cat === 'armor') { addc('cloth', ri(1, 3)); addc(b.armor > 10 ? 'scrap' : 'leather', ri(1, 2) + (it.rarity || 0)); if (b.radRes > 20) addc('lead', 1); if (b.tags.includes('science') || b.tags.includes('mil')) addc('fiber', ri(0, 2)); }
+    else return toast("Can't scrap that.");
+    if (hasPerk('salvager')) addc(pick(Object.keys(D.COMP)), 1);
+  }
+  if (all && it.qty) { G.p.inv.splice(G.p.inv.indexOf(it), 1); } else removeItemUnit(it);
+  for (const k in got) if (got[k] > 0) giveItem(k, got[k]);
+  log(`Scrapped ${n > 1 ? n + 'x ' : ''}${itemName(it)} → ${Object.entries(got).filter(e => e[1] > 0).map(([k, q]) => q + ' ' + D.ITEMS[k].name).join(', ')}`);
+  passTime(5); renderAll();
+}
+function scrapAllJunk() {
+  const junk = G.p.inv.filter(i => def(i).cat === 'junk' && !def(i).tags.includes('valuable'));
+  if (!junk.length) return toast('No junk to scrap.');
+  junk.forEach(i => scrapItem(i.uid, true));
+}
+
+/* ---------- crafting ---------- */
+function recipeStatus(r) {
+  const p = G.p; const out = { known: !r.schem || p.recipes.includes(r.id), skillOk: true, haveAll: true, stationOk: true, miss: [] };
+  for (const k in r.req) if ((p.skills[k] || 0) < r.req[k]) { out.skillOk = false; out.miss.push(`${D.SKILLS[k][0]} ${r.req[k]}`); }
+  for (const k in r.needs) if (countItem(k) < r.needs[k]) out.haveAll = false;
+  if (r.station === 'campfire' && !hasCampfire()) out.stationOk = false;
+  if (r.station === 'workbench' && !hasWorkbench()) out.stationOk = false;
+  out.can = out.known && out.skillOk && out.haveAll && out.stationOk;
+  return out;
+}
+function craft(rid) {
+  const r = D.RECIPE_BY_ID[rid]; const st = recipeStatus(r); if (!st.can || G.combat) return toast('Cannot craft that right now.');
+  for (const k in r.needs) removeQty(k, r.needs[k]);
+  const b = D.ITEMS[r.out[0]]; let it;
+  if (b.stack) { let q = r.out[1]; if (hasPerk('chemist') && (b.cat === 'med' || b.cat === 'chem')) q *= 2; it = giveItem(b.id, q); }
+  else {
+    const luck = G.p.skills.crafting * 9 + (hasPerk('tinker') ? 25 : 0);
+    it = addItem(makeItem(b.id, { luck, fullDur: true }));
+  }
+  passTime(b.stack ? 15 : 40); G.stats.crafted++; gainXP(4 + Object.values(r.req).reduce((a, v) => a + v, 0) * 3);
+  log(`Crafted ${itemName(it)}${it.qty > 1 ? '' : ''}.`, 'good'); toast('Crafted: ' + itemName(it));
+  renderAll(); saveGame(true);
+}
+
+/* ---------- enemies & combat ---------- */
+function makeEnemy(danger, kind, baseId, boss) {
+  let base;
+  if (baseId) base = D.ENEMIES.find(e => e[0] === baseId);
+  if (!base) {
+    let c = D.ENEMIES.filter(e => e[10] <= danger && (!kind || e[9] === kind));
+    if (!c.length) c = D.ENEMIES.filter(e => e[10] <= Math.max(danger, 2.5));
+    base = wpick(c, e => 1 + (danger - e[10] < 2 ? 2 : 0) + (isNight() && e[9] === 'mutant' ? 1 : 0));
+  }
+  const [id, name, hp, dmg, acc, armor, xp, caps, loot, k, , special] = base;
+  const v = wpick(D.ENEMY_VARIANTS); const vm = v[1];
+  const lvl = Math.max(1, Math.round(danger * 0.7 + G.p.level * 0.45)); const sc = 1 + 0.11 * (lvl - 1);
+  const e = { id, kind: k, lvl, name: (v[0] ? v[0] + ' ' : '') + name, hp: Math.round(hp * (vm.hp || 1) * sc), dmg: dmg.map(x => Math.round(x * (vm.dmg || 1) * (1 + 0.07 * (lvl - 1)))),
+    acc: acc + (vm.acc || 0), armor: armor + (vm.armor || 0) + Math.floor(lvl / 3), xp: Math.round(xp * (vm.xp || 1) * (1 + 0.1 * (lvl - 1))), caps: Math.round(ri(caps[0], caps[1]) * (vm.caps || 1)),
+    loot, special: vm.special || special, bleed: 0, burn: 0 };
+  if (boss) { e.boss = true; e.name = `${pick(D.BOSS_NAMES)} the ${name}`; e.hp = Math.round(e.hp * 2.3); e.dmg = e.dmg.map(x => Math.round(x * 1.35)); e.xp *= 3; e.caps = e.caps * 3 + 40; e.armor += 3; }
+  e.maxhp = e.hp; return e;
+}
+function makeGroup(danger, kind) {
+  const first = makeEnemy(danger, kind);
+  const packy = ['radrat', 'dog', 'bandit', 'ghoul', 'raider', 'snork', 'zombie'];
+  const n = packy.includes(first.id) ? (rnd() < 0.45 ? 1 : rnd() < 0.7 ? 2 : 3) : 1;
+  const g = [first]; for (let i = 1; i < n; i++) g.push(makeEnemy(danger, kind, first.id));
+  return g;
+}
+function startCombat(enemies, opts) {
+  opts = opts || {};
+  G.combat = { enemies, log: [], onWin: opts.onWin || null, onLose: opts.onLose || null, target: 0, noFlee: !!opts.noFlee };
+  map && map.closePopup();
+  cLog(`Combat! ${enemies.map(e => `${e.name} (lvl ${e.lvl})`).join(', ')}`);
+  if (opts.ambush) { cLog('You are ambushed!'); enemyTurn(); }
+  renderCombat(); renderAll();
+}
+function cLog(m, cls) { if (G.combat) G.combat.log.unshift({ m, cls: cls || '' }); }
+function aliveEnemies() { return G.combat.enemies.filter(e => e.hp > 0); }
+function curTarget() { const a = aliveEnemies(); let t = G.combat.enemies[G.combat.target]; if (!t || t.hp <= 0) { t = a[0]; G.combat.target = G.combat.enemies.indexOf(t); } return t; }
+function setTarget(i) { if (G.combat.enemies[i] && G.combat.enemies[i].hp > 0) { G.combat.target = i; renderCombat(); } }
+function wearGear(slot) { const it = equipped(slot); if (it && it.dur > 0) { it.dur = Math.max(0, it.dur - (hasPerk('mrfixit') ? 0.5 : 1)); if (it.dur <= 0) log(`${itemName(it)} broke!`, 'bad'); } }
+function playerAttack(aimed) {
+  if (!G.combat) return; const w = weaponStats(), s = getStats(); let t = curTarget(); if (!t) return;
+  let shots = aimed ? 1 : (w.burst || 1), bash = false;
+  if (w.ammo) {
+    const have = countItem(w.ammo); const need = aimed ? 1 : shots;
+    if (have <= 0) { bash = true; shots = 1; cLog('Out of ammo — you bash with the stock!', 'bad'); } else { shots = Math.min(shots, have); removeQty(w.ammo, shots); }
+  }
+  const extra = hasPerk('dualwield') && rnd() < 0.15 ? 1 : 0; if (extra) cLog('Rapid fire!');
+  for (let i = 0; i < shots + extra; i++) {
+    t = curTarget(); if (!t) break;
+    let acc = (bash ? 75 : w.acc) + s.acc + (!w.melee && hasPerk('sniper') ? 12 : 0) + (aimed ? -8 + (hasPerk('deadeye') ? 15 : 0) : 0) + (hasPerk('nightowl') && isNight() ? 10 : 0) - (isNight() && !hasPerk('nightowl') ? 8 : 0);
+    acc = clamp(acc, 5, 97);
+    if (rnd() * 100 >= acc) { cLog(`You miss ${t.name}.`); continue; }
+    let d = bash ? ri(2, 5) : ri(w.dmg[0], w.dmg[1]);
+    d *= 1 + s.dmg / 100;
+    if (w.melee && hasPerk('ironfist')) d *= 1.3;
+    if (w.pistol && hasPerk('gunslinger')) d *= 1.2;
+    if (hasPerk('adrenaline') && G.p.hp < s.maxhp * 0.35) d *= 1.25;
+    if (aimed) d *= 1.6;
+    let crit = rnd() * 100 < (w.crit + s.crit + (aimed ? 12 : 0));
+    if (crit) d *= hasPerk('bloodymess') ? 2.6 : 2;
+    const arm = w.shock ? t.armor * 0.3 : t.armor; d = Math.max(1, Math.round(d * (1 - arm / (arm + 30)) + (w.radDmg || 0)));
+    t.hp -= d; cLog(`${crit ? 'CRITICAL! ' : ''}You hit ${t.name} for ${d}.`, crit ? 'good' : '');
+    if (w.bleed && rnd() * 100 < w.bleed) { t.bleed = 3; cLog(`${t.name} is bleeding.`); }
+    if (w.burn && rnd() * 100 < w.burn) { t.burn = 2; cLog(`${t.name} catches fire!`); }
+    const ls = (w.lifesteal || 0) + s.lifesteal; if (ls > 0) G.p.hp = Math.min(s.maxhp, G.p.hp + d * ls / 100);
+    if (t.hp <= 0) cLog(`${t.name} is down!`, 'good');
+    if (w.it && !bash) wearGear('weapon');
+  }
+  afterPlayerAction();
+}
+function combatUse(uidv) {
+  const it = invFind(uidv); if (!it || !G.combat) return; const b = def(it);
+  if (b.cat === 'throw') {
+    const targets = b.id === 'molotov' ? [curTarget()] : aliveEnemies();
+    targets.forEach(t => { const d = ri(b.eff.dmg[0], b.eff.dmg[1]); t.hp -= d; cLog(`${itemName(it)} hits ${t.name} for ${d}!`, 'good'); if (b.eff.burn) t.burn = 3; if (t.hp <= 0) cLog(`${t.name} is down!`, 'good'); });
+    removeItemUnit(it);
+  } else if (b.cat === 'melee' || b.cat === 'ranged') { G.p.equip.weapon = it.uid; cLog(`You switch to ${itemName(it)}.`); }
+  else { useItem(uidv); cLog(`You use ${itemName(it)}.`); }
+  afterPlayerAction();
+}
+function afterPlayerAction() {
+  if (!aliveEnemies().length) return winCombat();
+  enemyTurn();
+  if (G.dead) return;
+  if (!aliveEnemies().length) return winCombat();
+  renderCombat(); renderHUD();
+}
+function enemyTurn() {
+  const s = getStats(), p = G.p;
+  G.combat.enemies.forEach(e => {
+    if (e.hp <= 0) return;
+    if (e.bleed > 0) { e.bleed--; e.hp -= 4; cLog(`${e.name} bleeds (-4).`); }
+    if (e.burn > 0) { e.burn--; e.hp -= 6; cLog(`${e.name} burns (-6).`); }
+    if (e.hp <= 0) { cLog(`${e.name} is down!`, 'good'); return; }
+    if (s.fear > 0 && rnd() * 200 < s.fear) { cLog(`${e.name} hesitates, intimidated.`); return; }
+    const acc = clamp(e.acc - s.stealth / 6 - (isNight() && e.kind !== 'mutant' ? 8 : 0), 10, 95);
+    if (rnd() * 100 >= acc) { cLog(`${e.name} misses you.`); return; }
+    let d = ri(e.dmg[0], e.dmg[1]);
+    const arm = (e.special === 'shock' || e.special === 'psy') ? s.armor * 0.4 : s.armor;
+    d = Math.max(1, Math.round(d * (1 - arm / (arm + 40))));
+    p.hp -= d; cLog(`${e.name} hits you for ${d}.`, 'bad'); wearGear('armor');
+    if (e.special === 'rad') { const r = Math.round(ri(2, 6) * (1 - s.radRes / 100)); if (r > 0) { p.rad = clamp(p.rad + r, 0, 150); cLog(`+${r} radiation.`, 'bad'); } }
+    if ((e.special === 'bleed' || e.special === 'poison') && rnd() < 0.3) { p.bleed = 3; cLog(e.special === 'poison' ? 'You are poisoned!' : 'You are bleeding!', 'bad'); }
+    if (e.special === 'drain') { e.hp = Math.min(e.maxhp, e.hp + Math.round(d / 2)); cLog(`${e.name} feeds on your blood.`); }
+  });
+  if (p.bleed > 0) { p.bleed--; p.hp -= 3; cLog('You bleed (-3).', 'bad'); }
+  if (p.hp <= 0) { const killer = aliveEnemies()[0]; die(killer ? killer.name : 'wounds'); }
+}
+function fleeCombat() {
+  if (!G.combat) return; if (G.combat.noFlee) { cLog("You can't run from this one!", 'bad'); renderCombat(); return; }
+  const s = getStats(); const boss = G.combat.enemies.some(e => e.boss && e.hp > 0);
+  let ch = (40 + G.p.skills.survival * 4 + s.stealth / 3 - (boss ? 20 : 0) - (overEncumbered() ? 20 : 0)) * (hasPerk('quickfeet') ? 1.6 : 1);
+  ch = clamp(ch, 5, 95);
+  if (rnd() * 100 < ch) {
+    log('You escaped.', 'warn'); const cb = G.combat.onLose; G.combat = null; closeModal(); passTime(10); if (cb) cb(); renderAll(); saveGame(true);
+  } else { cLog('You fail to escape!', 'bad'); enemyTurn(); if (!G.dead) { renderCombat(); renderHUD(); } }
+}
+function winCombat() {
+  const c = G.combat; let xp = 0, caps = 0; const items = [];
+  const danger = dangerAt(G.p.lat, G.p.lng);
+  c.enemies.forEach(e => {
+    xp += e.xp; caps += e.caps; G.stats.kills++; G.kills[e.id] = (G.kills[e.id] || 0) + 1;
+    G.quests.forEach(q => { if (q.status === 'active' && q.type === 'kill' && q.enemy === e.id) q.prog = (q.prog || 0) + 1; });
+    if (e.kind === 'raider') { G.rep.order = clamp(G.rep.order + 1, -100, 100); G.rep.raiders = clamp(G.rep.raiders - 1, -100, 100); }
+    if (e.kind === 'mutant') {
+      if (hasPerk('butcher') || rnd() < 0.55) items.push(makeItem('rawmeat', { qty: ri(1, 2) }));
+      if (hasPerk('butcher') || rnd() < 0.3) items.push(makeItem(rnd() < 0.6 ? 'hide' : 'bones', { qty: 1 }));
+      if (rnd() < 0.04 + (e.boss ? 0.5 : 0)) items.push(makeItem(pick(itemsByTag('artifact')).id, { luck: danger * 5 }));
+    } else if (e.kind === 'robot') { items.push(makeItem(pick(['electronics', 'circuit', 'scrap', 'copper']), { qty: ri(1, 3) })); if (rnd() < 0.4) items.push(makeItem('cells', { qty: ri(3, 8) })); }
+    else {
+      if (rnd() < 0.35 || e.boss) items.push(randomItemByTag('weapon', danger + (e.boss ? 3 : 0), getStats().loot + (e.boss ? 30 : 0)));
+      if (rnd() < 0.5) items.push(randomItemByTag('ammo', danger, 0));
+      if (rnd() < 0.4) items.push(randomItemByTag(pick(['food', 'drink', 'med', 'junk', 'chem']), danger, 0));
+      if (rnd() < 0.15 || e.boss) items.push(randomItemByTag(e.boss ? pick(['armor', 'schematic', 'artifact']) === 'artifact' ? 'armor' : pick(['armor', 'schematic']) : 'armor', danger, getStats().loot));
+    }
+  });
+  G.p.caps += caps; log(`Victory! +${xp} XP${caps ? `, +${caps} caps` : ''}.`, 'good');
+  const cb = c.onWin; G.combat = null; closeModal();
+  gainXP(xp); passTime(5);
+  const after = () => { if (cb) cb(); };
+  if (items.length) showLoot({ items, caps: 0 }, 'Loot from the fallen', after); else after();
+  renderAll(); saveGame(true);
+}
+
+/* ---------- encounters ---------- */
+function randomEncounter(kind, danger) {
+  const th = hasPerk('treasurehunter') ? 2 : 1;
+  const opts = kind ? [['fight', 0, 80], ['stash', 0, 5 * th], ['corpse', 0, 8]] :
+    [['fight', 0, isNight() ? 52 : 42], ['trader', 0, 9], ['stash', 0, 8 * th], ['wanderer', 0, 8], ['car', 0, 7], ['distress', 0, 6], ['corpse', 0, 7], ['storm', 0, day() > 1 ? 3 : 0]];
+  const t = wpick(opts)[0];
+  if (t === 'fight') return encounterFight(kind, danger);
+  if (t === 'trader') { log('You meet a wandering trader caravan.', 'good'); return openEvent('Trader Caravan', 'A pack mule, two guards and a fat merchant with a shotgun. "Caps or barter, friend?"', [['Trade', () => openTrade(null)], ['Move on', closeModal]]); }
+  if (t === 'stash') {
+    const loot = genLoot(pick(['camp', 'military', 'ruin', 'bunker']), danger + 1, 1 + (th > 1 ? 2 : 0)); loot.caps += ri(5, 30) * th;
+    log('You found a hidden stalker stash!', 'good'); gainXP(6); return showLoot(loot, 'Hidden Stash');
+  }
+  if (t === 'corpse') {
+    return openEvent('A Body', 'A dead stalker lies face-down in the weeds, backpack still on.', [
+      ['Search the body', () => { closeModal(); if (rnd() < 0.15) { log('The corpse twitches… it was not dead!', 'bad'); startCombat([makeEnemy(danger, null, 'zombie')], { onWin: () => showLoot(genLoot('camp', danger), 'Stalker remains') }); } else showLoot(genLoot('camp', danger), 'Stalker remains'); }],
+      ['Leave it', closeModal]]);
+  }
+  if (t === 'car') {
+    return openEvent('Abandoned Car', 'A rusted Lada with the doors hanging open. The trunk is closed.', [
+      ['Pry open the trunk (15m)', () => { closeModal(); passTime(15); if (rnd() < 0.15) { const d = ri(5, 15); G.p.hp -= d; log(`A grenade trap! -${d} HP.`, 'bad'); if (G.p.hp <= 0) return die('a booby trap'); } showLoot(genLoot('wreck', danger), 'Car trunk'); renderAll(); }],
+      ['Ignore', closeModal]]);
+  }
+  if (t === 'distress') {
+    const grp = makeGroup(danger, 'raider');
+    return openEvent('Cry for Help', `"Help! Over here!" A wounded stalker is pinned down by ${grp.length} ${grp[0].name}${grp.length > 1 ? 's' : ''}.`, [
+      ['Help him', () => { closeModal(); startCombat(grp, { onWin: () => { const c = ri(20, 60); G.p.caps += c; changeRep('loners', 5); gainXP(15); log(`The stalker thanks you and hands over ${c} caps.`, 'good'); const it = giveItem(pick(['firstaid', 'antirad', 'ammo9', 'stimpak']), 1); log(`He also gives you ${itemName(it)}.`, 'good'); renderAll(); } }); }],
+      ['Not my problem', () => { closeModal(); changeRep('loners', -1); }]]);
+  }
+  if (t === 'storm') {
+    return openEvent('⚠ EMISSION!', 'The sky turns blood-red and the ground hums. An emission is coming. Find cover NOW.', [
+      ['Run for the nearest building', () => {
+        closeModal(); const l = nearestLoc(G.p.lat, G.p.lng, 600);
+        if (l) { const d = dist(G.p.lat, G.p.lng, l.lat, l.lng); passTime(d / 1000 / travelSpeed() * 60); G.p.lat = l.lat; G.p.lng = l.lng; G.p.at = l.id; l.revealed = true; log(`You made it into ${l.name} as the emission hit.`, 'good'); renderWorld(); openLocPanel(); }
+        else { const s = getStats(); const d = Math.round(ri(20, 40) * (1 - s.anomRes / 100)); G.p.hp -= d; G.p.rad += Math.round(30 * (1 - s.radRes / 100)); log(`No cover! The emission tears through you: -${d} HP.`, 'bad'); if (G.p.hp <= 0) return die('the emission'); }
+        renderAll();
+      }],
+      ['Dig in and pray', () => { closeModal(); const s = getStats(); const d = Math.round(ri(10, 30) * (1 - s.anomRes / 100)); G.p.hp -= d; G.p.rad += Math.round(25 * (1 - s.radRes / 100)); passTime(60); log(`You survive the emission… barely. -${d} HP.`, 'bad'); if (G.p.hp <= 0) return die('the emission'); renderAll(); }]]);
+  }
+  if (t === 'wanderer') {
+    const name = `${pick(D.FIRST)} "${pick(D.NICK)}"`;
+    const v = ri(0, 2);
+    if (v === 0) return openEvent('Wanderer', `${name} sits by a dying fire. "Spare some food? I'll tell you what I've seen around here."`, [
+      ['Give food (any)', () => { const f = G.p.inv.find(i => def(i).cat === 'food'); if (!f) return toast('You have no food.'); removeItemUnit(f); closeModal(); let n = 0; Object.values(G.locs).forEach(l => { if (!l.revealed && dist(l.lat, l.lng, G.p.lat, G.p.lng) < 2000) { l.revealed = true; n++; } }); changeRep('loners', 2); gainXP(5); log(`${name} marks ${n} locations on your map.`, 'good'); renderWorld(); renderAll(); }],
+      ['Leave', closeModal]]);
+    if (v === 1) { const it = makeItem('schematic', {}); const price = 60 + ri(0, 60); return openEvent('Wanderer', `${name} whispers: "Found this in a lab. ${price} caps and it's yours."<br><b>${esc(itemName(it))}</b>`, [
+      [`Buy (${price} caps)`, () => { if (G.p.caps < price) return toast('Not enough caps.'); G.p.caps -= price; addItem(it); closeModal(); log(`Bought ${itemName(it)}.`, 'good'); renderAll(); }], ['Decline', closeModal]]); }
+    return openEvent('Wanderer', `${name} nods. "Watch out — the ${pick(D.ZONE_ADJ)} ${pick(D.ZONE_NOUN)} is crawling with mutants. Here, take this." He tosses you something.`, [['Thanks', () => { closeModal(); const it = giveItem(pick(['bandage', 'water', 'beans', 'antirad', 'vodka', 'ammo9']), ri(1, 2)); log(`Got ${itemName(it)}.`, 'good'); gainXP(3); renderAll(); }]]);
+  }
+}
+function encounterFight(kind, danger) {
+  const grp = makeGroup(danger, kind); const s = getStats();
+  const desc = `${grp.length > 1 ? grp.length + 'x ' : ''}${grp[0].name} (lvl ${grp[0].lvl})`;
+  log(`Encounter: ${desc}!`, 'warn');
+  const sneak = clamp(25 + s.stealth + G.p.skills.survival * 3 - (isNight() ? -10 : 0), 5, 90);
+  const choices = [['Fight', () => { closeModal(); startCombat(grp); }], [`Sneak past (${Math.round(sneak)}%)`, () => {
+    closeModal(); if (rnd() * 100 < sneak) { log('You slip past unnoticed.', 'good'); gainXP(3); renderAll(); } else { log('They spotted you!', 'bad'); startCombat(grp, { ambush: true }); }
+  }]];
+  if (s.fear > 0 && grp[0].kind !== 'robot') choices.push([`Intimidate (${Math.round(s.fear * 1.5)}%)`, () => { closeModal(); if (rnd() * 100 < s.fear * 1.5) { log('They back off from you.', 'good'); gainXP(4); } else startCombat(grp); renderAll(); }]);
+  openEvent('Hostiles!', `You spot ${desc} ${grp[0].kind === 'mutant' ? 'sniffing the air' : grp[0].kind === 'robot' ? 'scanning the area' : 'blocking the road'} ahead.`, choices);
+}
+function encounterAnomaly(z) {
+  const s = getStats();
+  openEvent('Anomaly!', `The air ripples in front of you — a ${pick(['Vortex', 'Burner', 'Electro', 'Springboard', 'Fruit Punch', 'Whirligig', 'Burnt Fuzz'])} anomaly in ${esc(z.name)}.`, [
+    ['Throw bolts and go around (+20m)', () => { closeModal(); passTime(20); log('You carefully navigate around the anomaly.'); renderAll(); }],
+    ['Search it for artifacts', () => {
+      closeModal(); const d = Math.round(ri(6, 16) * z.int * (1 - s.anomRes / 100) * (hasPerk('cautious') ? 0.6 : 1));
+      if (rnd() < 0.5) { G.p.hp -= d; log(`The anomaly lashes out: -${d} HP.`, 'bad'); if (G.p.hp <= 0) return die('an anomaly'); }
+      if (rnd() < 0.3 + G.p.skills.science * 0.04 + (countItem('detector') ? 0.2 : 0)) { const a = makeItem(pick(itemsByTag('artifact')).id, { luck: z.int * 8 }); G.stats.artifacts++; gainXP(15); showLoot({ items: [a], caps: 0 }, 'Artifact!'); questArtifact(z); }
+      else log('Nothing but twisted metal.'); renderAll();
+    }]]);
+}
+
+/* ---------- trade ---------- */
+function priceMod(fac) { const rep = fac ? G.rep[fac] : 0; return G.p.skills.barter * 0.04 + (hasPerk('silvertongue') ? 0.15 : 0) + rep / 500; }
+function buyPrice(it, fac) { const v = itemUnitValue(it); return Math.max(1, Math.ceil(v * Math.max(0.85, 1.4 - priceMod(fac)))); }
+function sellPrice(it, fac) { const v = itemUnitValue(it); return Math.max(it.base === 'package' ? 0 : 1, Math.floor(Math.min(v * 0.85, v * (0.35 + priceMod(fac) * 0.7)))); }
+function traderStock(settle, seedKey) {
+  return withSeed(hashStr(G.seed + seedKey + Math.floor(day() / 2)), () => {
+    const st = []; const dg = 1 + G.p.level * 0.4 + (distFromStartKm(G.p.lat, G.p.lng) * 0.3);
+    const add = (spec, n) => { for (let i = 0; i < n; i++) { const it = randomItemByTag(spec, dg, 10); const b = def(it); if (b.stack) { const ex = st.find(x => x.base === it.base); if (ex) { ex.qty += it.qty; continue; } } st.push(it); } };
+    [['water', 3], ['beans', 2], ['bandage', 3], ['antirad', 1], ['ammo9', 30]].forEach(([b, q]) => st.push(makeItem(b, { qty: q + ri(0, q) })));
+    add('food', 3); add('drink', 2); add('med', 3); add('ammo', 3); add('comp', 5); add('weapon', ri(2, 4)); add('armor', ri(1, 2)); add('tool', 2);
+    if (rnd() < 0.6) add('schematic', 1); if (rnd() < 0.4) add('book', 1); if (rnd() < 0.5) add('chem', 1);
+    if (settle && settle.fac === 'science') { add('artifact', 1); add('tool:science', 1); }
+    if (settle && settle.fac === 'order') { add('weapon:mil', 1); add('armor:mil', 1); }
+    return st;
+  });
+}
+let TRADE = null;
+function openTrade(loc) {
+  if (loc && loc.settle) {
+    const s = loc.settle;
+    if (G.rep[s.fac] < -30) return toast(`${D.FACTIONS[s.fac].name} refuse to trade with you.`);
+    if (s.stockDay !== Math.floor(day() / 2)) { s.stockDay = Math.floor(day() / 2); s.stock = traderStock(s, loc.id); s.caps = Math.max(s.caps, 300 + G.p.level * 40); }
+    TRADE = { name: s.trader, fac: s.fac, stock: s.stock, ref: s };
+  } else {
+    TRADE = { name: `${pick(D.FIRST)} the Caravaneer`, fac: null, stock: traderStock(null, 'wander' + G.time), ref: { caps: ri(200, 500) } };
+  }
+  renderTrade();
+}
+function tradeBuy(i) {
+  const it = TRADE.stock[i]; if (!it) return; const pr = buyPrice(it, TRADE.fac);
+  if (G.p.caps < pr) return toast('Not enough caps.');
+  G.p.caps -= pr; TRADE.ref.caps += pr;
+  if (it.qty > 1) { it.qty--; giveItem(it.base, 1); } else { TRADE.stock.splice(i, 1); addItem(it); }
+  renderTrade(); renderHUD();
+}
+function tradeSell(uidv) {
+  const it = invFind(uidv); if (!it) return; if (it.base === 'package') return toast("That's not yours to sell.");
+  const pr = sellPrice(it, TRADE.fac); if (TRADE.ref.caps < pr) return toast('Trader is out of caps.');
+  G.p.caps += pr; TRADE.ref.caps -= pr;
+  if (it.qty > 1) { it.qty--; const ex = TRADE.stock.find(x => x.base === it.base && x.qty); if (ex) ex.qty++; else TRADE.stock.push(makeItem(it.base, { qty: 1 })); }
+  else { removeItemUnit(it); TRADE.stock.push(it); }
+  renderTrade(); renderHUD();
+}
+
+/* ---------- quests ---------- */
+const FETCH_POOL = [['bandage', 3, 5], ['beans', 2, 4], ['water', 2, 4], ['antirad', 1, 3], ['scrap', 4, 8], ['electronics', 2, 4], ['chemicals', 2, 4], ['cloth', 3, 6], ['vodka', 1, 3], ['firstaid', 1, 2], ['circuit', 1, 3], ['rawmeat', 2, 4], ['hide', 1, 3], ['herbs', 3, 6], ['gunpowder', 2, 4], ['filter', 1, 2], ['carbatt', 1, 1], ['goldwatch', 1, 1], ['fuel', 1, 3], ['ammo9', 15, 30], ['bones', 2, 4], ['phone', 1, 2]];
+function genQuests(loc) {
+  const s = loc.settle; const out = [];
+  withSeed(hashStr(G.seed + loc.id + 'q' + day()), () => {
+    for (let i = 0; i < 6 && out.length < 3; i++) {
+      const q = genQuest(loc); if (!q) continue;
+      const active = G.quests.filter(x => x.status === 'active');
+      if ([...out, ...active].some(x => x.title === q.title || (q.locId && x.locId === q.locId) || (q.zoneId && x.zoneId === q.zoneId))) continue;
+      out.push(q);
+    }
+  });
+  return out;
+}
+function questTargetLoc(from, minD, maxD) {
+  const c = Object.values(G.locs).filter(l => l.id !== from.id && !l.settle && (l.real || rnd() < 0.5)).map(l => ({ l, d: dist(from.lat, from.lng, l.lat, l.lng) })).filter(x => x.d > minD && x.d < maxD);
+  c.sort((a, b) => (b.l.real && b.l.name.indexOf('Abandoned') < 0 ? 1 : 0) - (a.l.real && a.l.name.indexOf('Abandoned') < 0 ? 1 : 0) || a.d - b.d);
+  const top = c.slice(0, 25); return top.length ? pick(top).l : null;
+}
+function genQuest(loc) {
+  const s = loc.settle; const fac = s.fac; const giver = `${pick(D.FIRST)} "${pick(D.NICK)}"`;
+  const lvl = G.p.level; const danger = dangerAt(loc.lat, loc.lng);
+  const mult = (1 + G.p.skills.barter * 0.05) * (hasPerk('leader') ? 1.25 : 1);
+  const type = wpick([['fetch', 0, 3], ['kill', 0, 3], ['deliver', 0, 2], ['explore', 0, 2], ['clear', 0, 2], ['artifact', 0, 1.5], ['escort', 0, 1.2]])[0];
+  const q = { id: 'q' + G.time + '_' + ri(1000, 9999), type, giverId: loc.id, giver, fac, status: 'offer', prog: 0 };
+  const rew = (base) => { q.caps = Math.round(base * mult * (1 + lvl * 0.15)); q.xp = Math.round(base * 0.8 * (1 + lvl * 0.1)); q.rep = ri(4, 10); if (rnd() < 0.35) q.item = pick(['firstaid', 'stimpak', 'antirad', 'radaway', 'repairkit', 'armymed', 'schematic', 'modkit', 'grenade', 'bk_' + pick(['combat', 'survival', 'scav', 'craft', 'med', 'barter', 'science'])]); };
+  if (type === 'fetch') {
+    const [b, a, z] = pick(FETCH_POOL); q.need = b; q.count = ri(a, z);
+    q.title = `${pick(['Supply Run', 'Shopping List', 'Urgent Need', 'Stock Up'])}: ${D.ITEMS[b].name}`;
+    q.desc = `${giver} needs ${q.count}x ${D.ITEMS[b].name}. ${pick(['"Our stores are running dry."', '"Don\'t ask what it\'s for."', '"The Doc is asking for it."', '"I\'ll pay fair, I swear."'])} Bring them back here.`;
+    rew(D.ITEMS[b].v * q.count * 1.6 + 25);
+  } else if (type === 'kill') {
+    const c = D.ENEMIES.filter(e => e[10] <= danger + 1 + lvl * 0.3); const e = pick(c);
+    q.enemy = e[0]; q.count = e[10] >= 3 ? ri(1, 2) : ri(2, 5);
+    q.title = `${pick(['Cull', 'Hunt', 'Extermination', 'Bounty'])}: ${e[1]}`;
+    q.desc = `${giver}: "${e[9] === 'raider' ? 'Those scum have been robbing our people.' : 'These creatures killed two of ours last week.'}" Kill ${q.count} ${e[1]}(s) anywhere, then return.`;
+    rew(e[6] * q.count * 1.5 + 30);
+  } else if (type === 'artifact') {
+    let z = G.zones.filter(z => z.type === 'anomaly').map(z => ({ z, d: dist(loc.lat, loc.lng, z.lat, z.lng) })).filter(x => x.d < 6000).sort((a, b) => a.d - b.d)[0];
+    if (!z) return null; z = z.z; q.zoneId = z.id;
+    q.title = `Artifact Hunt: ${z.name}`; q.desc = `${giver} wants samples from the anomaly field "${z.name}". Go there and use "Hunt artifacts" until you find one.`;
+    rew(90 + z.int * 30);
+  } else {
+    const t = questTargetLoc(loc, type === 'clear' ? 400 : 500, 3500 + lvl * 300); if (!t) return null;
+    q.locId = t.id; const tn = `${t.name} (${D.POI[t.type].label})`;
+    if (type === 'deliver') { q.title = `Delivery to ${t.name}`; q.desc = `Carry a sealed package to ${tn}. ${pick(['"Don\'t open it."', '"Someone will be waiting."', '"Leave it under the counter."'])}`; rew(50 + dist(loc.lat, loc.lng, t.lat, t.lng) / 40); }
+    if (type === 'explore') { q.title = `Recon: ${t.name}`; q.desc = `${giver}: "Nobody's been to ${tn} since the bombs. Go take a look." Reach the location.`; rew(40 + dist(loc.lat, loc.lng, t.lat, t.lng) / 50); }
+    if (type === 'clear') { q.title = `Clear Out ${t.name}`; q.desc = `A dangerous ${pick(['raider boss', 'mutant alpha', 'gang leader', 'beast'])} has made ${tn} its lair. Kill it.`; q.boss = true; rew(110 + danger * 25); }
+    if (type === 'escort') { q.title = `Escort to ${t.name}`; q.desc = `${pick(D.FIRST)}, a ${pick(['nervous scientist', 'young stalker', 'old medic', 'trader'])}, needs to reach ${tn} alive. Expect trouble on the road.`; rew(70 + dist(loc.lat, loc.lng, t.lat, t.lng) / 30); }
+  }
+  return q;
+}
+function acceptQuest(locId, i) {
+  const s = G.locs[locId].settle; const q = s.quests[i]; if (!q) return;
+  if (G.quests.filter(x => x.status === 'active').length >= 8) return toast('Journal full (8 active quests).');
+  q.status = 'active'; G.quests.push(q); s.quests.splice(i, 1);
+  if (q.type === 'deliver') addItem(makeItem('package', { quest: q.id }));
+  log(`Quest accepted: ${q.title}`, 'quest'); renderWorld(); renderAll(); renderLocPanel(); openSettlementQuests(locId);
+}
+function questReady(q) {
+  if (q.type === 'fetch') return countItem(q.need) >= q.count;
+  if (q.type === 'kill') return (q.prog || 0) >= q.count;
+  return false;
+}
+function completeQuest(q) {
+  q.status = 'done'; G.stats.quests++;
+  G.p.caps += q.caps; gainXP(q.xp); changeRep(q.fac, q.rep);
+  (D.FACTIONS[q.fac].enemies || []).forEach(f => { if (f !== 'raiders') changeRep(f, -Math.ceil(q.rep / 3)); });
+  let extra = '';
+  if (q.item) { const it = q.item === 'schematic' ? makeItem('schematic', {}) : makeItem(q.item, { qty: 1, luck: 20 }); addItem(it); extra = ` and ${itemName(it)}`; }
+  log(`Quest complete: ${q.title}! +${q.caps} caps, +${q.xp} XP${extra}.`, 'quest'); toast('Quest complete!');
+  renderWorld(); renderAll();
+}
+function turnInQuest(qid) {
+  const q = G.quests.find(x => x.id === qid); if (!q || !questReady(q)) return;
+  if (q.type === 'fetch') removeQty(q.need, q.count);
+  completeQuest(q); openSettlementQuests(q.giverId);
+}
+function abandonQuest(qid) {
+  const q = G.quests.find(x => x.id === qid); if (!q) return; q.status = 'failed';
+  if (q.type === 'deliver') removeQty('package', 1);
+  changeRep(q.fac, -2); log(`Quest abandoned: ${q.title}`, 'bad'); renderWorld(); renderAll();
+}
+function questArrive(loc) {
+  G.quests.filter(q => q.status === 'active' && q.locId === loc.id).forEach(q => {
+    if (q.type === 'deliver') { G.p.inv = G.p.inv.filter(i => !(i.base === 'package' && i.quest === q.id)); log('You leave the package at the drop point.', 'quest'); completeQuest(q); }
+    else if (q.type === 'explore') completeQuest(q);
+    else if (q.type === 'escort') { log('Your escort thanks you and disappears inside.', 'quest'); completeQuest(q); }
+    else if (q.type === 'clear' && q.boss) {
+      const boss = makeEnemy(dangerAt(loc.lat, loc.lng) + 1.5, null, null, true);
+      const grp = [boss]; if (rnd() < 0.6) grp.push(makeEnemy(dangerAt(loc.lat, loc.lng), boss.kind));
+      log(`${boss.name} is here!`, 'bad');
+      setTimeout(() => startCombat(grp, { onWin: () => { q.boss = false; completeQuest(q); } }), 50);
+    }
+  });
+}
+function questArtifact(z) { G.quests.filter(q => q.status === 'active' && q.zoneId === z.id).forEach(completeQuest); }
+
+/* ---------- skills & perks ---------- */
+function raiseSkill(k) { if (G.p.sp <= 0 || G.p.skills[k] >= 10) return; G.p.sp--; G.p.skills[k]++; log(`${D.SKILLS[k][0]} raised to ${G.p.skills[k]}.`, 'good'); renderAll(); saveGame(true); }
+function perkOffers() { const pool = D.PERKS.filter(p => !G.p.perks.includes(p[0])); const out = []; while (out.length < 3 && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); return out; }
+function takePerk(id) { if (G.p.pendingPerks <= 0) return; G.p.perks.push(id); G.p.pendingPerks--; log(`New perk: ${D.PERK_BY_ID[id][1]}.`, 'good'); closeModal(); renderAll(); saveGame(true); maybePerkModal(); }
+
+/* ---------- save / load / death ---------- */
+function saveGame(quiet) {
+  if (!G || G.dead || G.combat) return false;
+  try { const copy = Object.assign({}, G); delete copy.travel; delete copy.combat; localStorage.setItem(SAVE_KEY, JSON.stringify(copy)); if (!quiet) toast('Game saved.'); return true; }
+  catch (e) { if (!quiet) toast('Save failed: ' + e.message); return false; }
+}
+function loadGame() {
+  try { const s = localStorage.getItem(SAVE_KEY); if (!s) return false; G = JSON.parse(s); G.travel = null; G.combat = null; G.dead = false; return true; } catch (e) { return false; }
+}
+function die(cause) {
+  if (G.dead) return; G.dead = true; stopTravel(); G.combat = null;
+  log(`You died (${cause}).`, 'bad');
+  showDeath(cause);
+}
+
+</script>
+<script>
+/* ===== UI ===== */
+'use strict';
+let TAB = 'inv', INV_FILTER = 'all', OPEN_ITEM = null, LP_COLLAPSED = false;
+
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; $('#toasts').appendChild(t);
+  setTimeout(() => t.classList.add('out'), 2200); setTimeout(() => t.remove(), 2800);
+}
+function bar(label, v, max, cls, txt) {
+  const pct = clamp(v / max * 100, 0, 100);
+  return `<div class="stat ${cls}" title="${label}"><span class="sl">${label}</span><div class="bar"><i style="width:${pct}%"></i></div><span class="sv">${txt != null ? txt : Math.round(v)}</span></div>`;
+}
+function renderHUD() {
+  if (!G) return; const p = G.p, s = getStats();
+  const w = totalWeight(), cap = s.carry;
+  $('#hud').innerHTML =
+    bar('HP', p.hp, s.maxhp, 'hp', `${Math.max(0, Math.round(p.hp))}/${s.maxhp}`) + bar('FOOD', p.food, 100, 'food') + bar('H2O', p.water, 100, 'water') +
+    bar('RAD', p.rad, 100, 'rad') + bar('FTG', p.fatigue, 100, 'ftg') +
+    `<div class="hinfo"><span class="${w > cap ? 'neg' : ''}">⚖ ${round1(w)}/${cap}kg</span><span>⛁ ${p.caps} caps</span><span>${isNight() ? '☾' : '☀'} ${timeStr()}</span><span>LVL ${p.level} <small>${p.xp}/${xpNeed(p.level)}xp</small></span><span title="Danger level here">⚠ ${dangerAt(p.lat, p.lng)}</span>${p.bleed > 0 ? '<span class="neg">🩸BLEEDING</span>' : ''}${p.sp > 0 ? `<span class="pos">+${p.sp} SP</span>` : ''}</div>`;
+  applyNight();
+}
+function onLog() { const t = $('#ticker'); if (t && G) t.innerHTML = G.log.slice(0, 3).map(l => `<div class="${l.cls}"><span class="muted">[${l.t}]</span> ${l.msg}</div>`).join(''); if (TAB === 'log') renderTab(); }
+function renderAll() { if (!G) return; renderHUD(); renderTab(); renderLocPanel(); onLog(); maybePerkModal(); }
+
+/* ---------- side tabs ---------- */
+const MOBILE_MQ = window.matchMedia('(max-width: 820px), (pointer: coarse) and (max-height: 520px)');
+const COARSE = window.matchMedia('(pointer: coarse)').matches;
+function isMobile() { return MOBILE_MQ.matches; }
+function openSheet() { if (!document.body.classList.contains('sheet-open')) { document.body.classList.add('sheet-open'); } }
+function closeSheet() { document.body.classList.remove('sheet-open'); }
+function setTab(t, keepSheet) {
+  if (t === 'map') { closeSheet(); return; }
+  if (isMobile() && !keepSheet) {
+    if (TAB === t && document.body.classList.contains('sheet-open')) { closeSheet(); return; }
+    openSheet();
+  }
+  TAB = t; document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); renderTab();
+  const tb = $('#tabbody'); if (tb) tb.scrollTop = 0;
+}
+function renderTab() {
+  const el = $('#tabbody'); if (!el || !G) return;
+  el.innerHTML = ({ inv: tabInv, craft: tabCraft, char: tabChar, skills: tabSkills, quests: tabQuests, log: tabLog, menu: tabMenu })[TAB]();
+}
+const INV_CATS = { all: null, weapons: ['melee', 'ranged', 'ammo', 'throw'], armor: ['armor', 'artifact'], aid: ['food', 'drink', 'med', 'chem'], junk: ['junk'], comp: ['comp'], misc: ['tool', 'book', 'schematic', 'quest'] };
+function invRow(it) {
+  const b = def(it), eq = isEquipped(it), open = OPEN_ITEM === it.uid;
+  let acts = [];
+  if (open) {
+    if (['food', 'drink', 'med', 'chem', 'book', 'schematic'].includes(b.cat) || ['repairkit', 'modkit', 'plating'].includes(b.id)) acts.push(`<button class="btn" onclick="useItem(${it.uid})">${b.cat === 'book' || b.cat === 'schematic' ? 'Read' : 'Use'}</button>`);
+    if (['melee', 'ranged', 'armor', 'artifact'].includes(b.cat)) acts.push(eq ? `<button class="btn" onclick="unequipItem(${it.uid})">Unequip</button>` : `<button class="btn" onclick="equipItem(${it.uid})">Equip</button>`);
+    if (b.scrap || ['melee', 'ranged', 'armor'].includes(b.cat)) { acts.push(`<button class="btn" onclick="scrapItem(${it.uid})">Scrap</button>`); if (it.qty > 1) acts.push(`<button class="btn" onclick="scrapItem(${it.uid},true)">Scrap all</button>`); }
+    if (b.cat !== 'quest') { acts.push(`<button class="btn dim" onclick="dropItem(${it.uid})">Drop</button>`); if (it.qty > 1) acts.push(`<button class="btn dim" onclick="dropItem(${it.uid},true)">Drop all</button>`); }
+  }
+  return `<div class="irow${eq ? ' eq' : ''}${open ? ' open' : ''}" ><div class="ihead" onclick="OPEN_ITEM=${open ? 'null' : it.uid};renderTab()"><span style="color:${rarityColor(it)}">${eq ? '[E] ' : ''}${esc(itemName(it))}${it.qty > 1 ? ' ×' + it.qty : ''}</span><span class="muted">${round1(itemWeight(it))}kg</span></div>${open ? `<div class="idesc">${itemDesc(it)}<div class="acts">${acts.join('')}</div></div>` : ''}</div>`;
+}
+function tabInv() {
+  const cats = INV_CATS[INV_FILTER];
+  const order = ['melee', 'ranged', 'armor', 'artifact', 'ammo', 'throw', 'med', 'chem', 'food', 'drink', 'tool', 'book', 'schematic', 'quest', 'comp', 'junk'];
+  const list = G.p.inv.filter(i => !cats || cats.includes(def(i).cat)).sort((a, b) => (isEquipped(b) - isEquipped(a)) || order.indexOf(def(a).cat) - order.indexOf(def(b).cat) || itemName(a).localeCompare(itemName(b)));
+  const w = weaponStats();
+  return `<div class="filters">${Object.keys(INV_CATS).map(k => `<button class="chip${INV_FILTER === k ? ' on' : ''}" onclick="INV_FILTER='${k}';renderTab()">${k}</button>`).join('')}</div>
+  <div class="muted small">Weapon: ${esc(w.name)} ${w.dmg[0]}-${w.dmg[1]} dmg${w.ammo ? ` · ammo ${countItem(w.ammo)}` : ''} · click an item for actions</div>
+  ${list.map(invRow).join('') || '<div class="muted">Empty.</div>'}
+  <div class="acts"><button class="btn" onclick="scrapAllJunk()">Scrap all junk</button></div>`;
+}
+function tabCraft() {
+  const rs = D.RECIPES.filter(r => !r.schem || G.p.recipes.includes(r.id)).map(r => ({ r, st: recipeStatus(r) }));
+  rs.sort((a, b) => (b.st.can - a.st.can) || (b.st.skillOk - a.st.skillOk) || recipeName(a.r).localeCompare(recipeName(b.r)));
+  const row = ({ r, st }) => {
+    const b = D.ITEMS[r.out[0]];
+    const needs = Object.entries(r.needs).map(([k, n]) => `<span class="${countItem(k) >= n ? 'pos' : 'neg'}">${n} ${D.ITEMS[k].name} (${countItem(k)})</span>`).join(', ');
+    return `<div class="irow craft ${st.can ? '' : 'locked'}"><div class="ihead"><span>${r.schem ? '📜 ' : ''}${esc(recipeName(r))} <span class="muted small">${b.cat}</span></span>
+      <button class="btn" ${st.can ? '' : 'disabled'} onclick="craft('${r.id}')">Craft</button></div>
+      <div class="small">${needs}${r.station ? ` · <span class="${st.stationOk ? 'pos' : 'neg'}">needs ${r.station}</span>` : ''}${st.miss.length ? ` · <span class="neg">req ${st.miss.join(', ')}</span>` : ''}</div></div>`;
+  };
+  return `<div class="small">Campfire: <b class="${hasCampfire() ? 'pos' : 'neg'}">${hasCampfire() ? 'yes' : 'no'}</b> · Workbench: <b class="${hasWorkbench() ? 'pos' : 'neg'}">${hasWorkbench() ? 'yes' : 'no'}</b>
+  <br><span class="muted">Workbenches at settlements, factories, garages, hardware & fire stations. Make a campfire with 2 Wood + Matches. Find 📜 schematics to unlock advanced recipes (${G.p.recipes.length}/${D.SCHEMATICS.length} learned).</span></div>
+  <div class="acts"><button class="btn" onclick="makeCamp()">🔥 Make campfire</button></div>${rs.map(row).join('')}`;
+}
+function tabChar() {
+  const s = getStats(), p = G.p;
+  const art = ['art1', 'art2'].map(k => equipped(k)).filter(Boolean);
+  return `<h3>${esc(G.name)} <span class="muted">— Level ${p.level}</span></h3>
+  <div class="grid2 small">
+   <div>Armor <b>${Math.round(s.armor)}</b></div><div>Max HP <b>${s.maxhp}</b></div>
+   <div>Rad resist <b>${Math.round(s.radRes)}%</b></div><div>Anomaly resist <b>${Math.round(s.anomRes)}%</b></div>
+   <div>Damage <b>+${s.dmg}%</b></div><div>Accuracy <b>+${s.acc}</b></div>
+   <div>Crit <b>${s.crit}%</b></div><div>Stealth <b>${s.stealth}</b></div>
+   <div>Carry <b>${s.carry} kg</b></div><div>Speed <b>${travelSpeed().toFixed(1)} km/h</b></div>
+   <div>Loot luck <b>${s.loot}</b></div><div>HP regen <b>${round1(0.8 + s.regen)}/h</b></div>
+   ${s.radEmit ? `<div class="neg">Artifact rad <b>${s.radEmit}/h</b></div>` : ''}${s.lifesteal ? `<div>Lifesteal <b>${s.lifesteal}%</b></div>` : ''}
+  </div>
+  <h4>Equipped artifacts</h4>${art.length ? art.map(a => `<div style="color:${rarityColor(a)}">${esc(itemName(a))}: <span class="small">${modsText(a.gmods)}</span></div>`).join('') : '<div class="muted small">None. Find artifacts in anomaly fields (purple zones).</div>'}
+  ${p.buffs.length ? '<h4>Active effects</h4>' + p.buffs.map(b => `<div class="small pos">+${b.val} ${b.stat} (${fmtMin(b.until - G.time)})</div>`).join('') : ''}
+  <h4>Factions</h4>${Object.keys(D.FACTIONS).map(f => `<div class="small"><span style="color:${D.FACTIONS[f].color}">${D.FACTIONS[f].name}</span> ${bar('', G.rep[f] + 100, 200, 'rep', G.rep[f])}</div>`).join('')}
+  <h4>Record</h4><div class="small muted">Travelled ${G.stats.km.toFixed(1)} km · Kills ${G.stats.kills} · Searches ${G.stats.searched} · Crafted ${G.stats.crafted} · Quests ${G.stats.quests} · Artifacts ${G.stats.artifacts}<br>Start: ${esc(G.startName)}</div>`;
+}
+function tabSkills() {
+  const p = G.p;
+  return `<div>Skill points: <b class="pos">${p.sp}</b> <span class="muted small">(+2 per level, books give +1)</span></div>
+  ${Object.keys(D.SKILLS).map(k => `<div class="irow"><div class="ihead"><span>${D.SKILLS[k][0]} <b>${p.skills[k]}</b>/10</span><button class="btn" ${p.sp > 0 && p.skills[k] < 10 ? '' : 'disabled'} onclick="raiseSkill('${k}')">+</button></div><div class="small muted">${D.SKILLS[k][1]}</div><div class="pips">${'■'.repeat(p.skills[k])}${'□'.repeat(10 - p.skills[k])}</div></div>`).join('')}
+  <h4>Perks (${p.perks.length}/${D.PERKS.length})</h4>${p.perks.map(id => `<div class="small"><b>${D.PERK_BY_ID[id][1]}</b> — <span class="muted">${D.PERK_BY_ID[id][2]}</span></div>`).join('') || '<div class="muted small">Level up to choose perks.</div>'}
+  ${p.pendingPerks > 0 ? `<button class="btn" onclick="maybePerkModal(true)">Choose perk (${p.pendingPerks})</button>` : ''}`;
+}
+function questLine(q) {
+  let prog = '';
+  if (q.type === 'fetch') prog = `${Math.min(countItem(q.need), q.count)}/${q.count} ${D.ITEMS[q.need].name} — return to ${G.locs[q.giverId] ? esc(G.locs[q.giverId].name) : 'giver'}`;
+  if (q.type === 'kill') prog = `${Math.min(q.prog || 0, q.count)}/${q.count} killed — return to ${G.locs[q.giverId] ? esc(G.locs[q.giverId].name) : 'giver'}`;
+  const tl = q.locId && G.locs[q.locId], tz = q.zoneId && G.zones.find(z => z.id === q.zoneId);
+  if (tl) prog = `Target: ${esc(tl.name)} (${fmtDist(dist(G.p.lat, G.p.lng, tl.lat, tl.lng))})`;
+  if (tz) prog = `Zone: ${esc(tz.name)} (${fmtDist(dist(G.p.lat, G.p.lng, tz.lat, tz.lng))})`;
+  const tgt = tl || tz || G.locs[q.giverId];
+  return `<div class="irow"><div class="ihead"><span class="qtxt">${esc(q.title)}</span><span class="muted small">${q.type}</span></div><div class="small">${q.desc}</div>
+   <div class="small pos">${prog}</div><div class="small muted">Reward: ${q.caps} caps, ${q.xp} XP, +${q.rep} ${D.FACTIONS[q.fac].name}${q.item ? ', bonus item' : ''}</div>
+   <div class="acts">${tgt ? `<button class="btn" onclick="closeSheet();map.setView([${tgt.lat},${tgt.lng}],16)">Show on map</button>` : ''}<button class="btn dim" onclick="abandonQuest('${q.id}')">Abandon</button></div></div>`;
+}
+function tabQuests() {
+  const a = G.quests.filter(q => q.status === 'active');
+  return `<div class="muted small">Quests come from settlements (⌂ markers). Completed: ${G.stats.quests}</div>${a.map(questLine).join('') || '<div class="muted">No active quests. Visit a settlement — your home bunker has a quest board.</div>'}`;
+}
+function tabLog() { return G.log.map(l => `<div class="logl ${l.cls}"><span class="muted">[${l.t}]</span> ${l.msg}</div>`).join(''); }
+function tabMenu() {
+  return `<div class="acts col"><button class="btn" onclick="saveGame()">💾 Save game</button><button class="btn" onclick="if(loadGame()){bootGame();toast('Loaded')}else toast('No save')">📂 Load game</button>
+  <button class="btn" onclick="if(confirm('Start a new game? Unsaved progress is lost.'))showStart()">☢ New game</button>
+  <button class="btn" onclick="document.body.classList.toggle('nofilter')">🎨 Toggle map filter</button>
+  <button class="btn" onclick="ensurePOIs(true)">📡 Rescan area (OSM)</button>
+  <button class="btn" onclick="showHelp()">❓ How to play</button></div>
+  <p class="small muted">Map © OpenStreetMap contributors, tiles © Esri &amp; OpenTopoMap. Places from the Overpass API. Your progress autosaves to this browser.</p>`;
+}
+
+/* ---------- location panel / action bar ---------- */
+function renderLocPanel() {
+  const el = $('#locpanel'); if (!el || !G) return;
+  if (G.travel) { el.innerHTML = `<div class="lp-title">Travelling…</div><button class="btn" onclick="stopTravel();arrive(null)">■ Stop</button>`; return; }
+  const l = currentLoc(); const zs = zonesAt(G.p.lat, G.p.lng); const anom = zs.find(z => z.type === 'anomaly');
+  let h = `<button class="lp-toggle" onclick="LP_COLLAPSED=!LP_COLLAPSED;renderLocPanel()" aria-label="Toggle panel">${LP_COLLAPSED ? '▴' : '▾'}</button>`;
+  el.classList.toggle('collapsed', LP_COLLAPSED);
+  if (l) {
+    const P = D.POI[l.type]; const looted = l.searches <= 0 && day() < l.respawnDay;
+    h += `<div class="lp-title">${esc(l.name)} <span class="muted small">${P.label}${l.real ? ' · real' : ''}</span></div><div class="lp-body">`;
+    if (l.settle) h += `<div class="small" style="color:${D.FACTIONS[l.settle.fac].color}">⌂ ${esc(l.settle.name)} · ${D.FACTIONS[l.settle.fac].name} (rep ${G.rep[l.settle.fac]})</div>`;
+    h += `<div class="acts">`;
+    h += `<button class="btn" ${looted ? 'disabled' : ''} onclick="searchLoc()">🔍 Search${looted ? ' (empty)' : ''}</button>`;
+    if (l.settle) { h += `<button class="btn" onclick="openTrade(currentLoc())">⛁ Trade</button><button class="btn" onclick="openSettlementQuests('${l.id}')">! Quests${settleQuestBadge(l)}</button><button class="btn" onclick="rest(8)">🛏 Sleep 8h${l.settle.home ? '' : ' (10c)'}</button>`; }
+    if (hasWorkbench()) h += `<button class="btn" onclick="setTab('craft',false)">⚒ Workbench</button>`;
+    h += `</div>`;
+  } else h += `<div class="lp-title">Wilderness <span class="muted small">${G.p.lat.toFixed(4)}, ${G.p.lng.toFixed(4)}</span></div><div class="lp-body">`;
+  if (zs.length) h += `<div class="small">${zs.map(z => `<span class="z-${z.type}">${zoneLabel(z)}: ${esc(z.name)} (lvl ${z.int})</span>`).join(' · ')}</div>`;
+  h += `<div class="acts">${anom ? `<button class="btn hot" onclick="huntArtifacts()">✺ Hunt artifacts</button>` : ''}${!(l && l.settle) ? `<button class="btn" onclick="makeCamp()">🔥 Campfire</button><button class="btn" onclick="rest(1)">⏳ Rest 1h</button><button class="btn" onclick="rest(8)">🛏 Sleep 8h</button>` : `<button class="btn" onclick="rest(1)">⏳ Wait 1h</button>`}<button class="btn dim" onclick="map.setView([G.p.lat,G.p.lng],16)">◎ Center</button></div></div>`;
+  el.innerHTML = h;
+}
+function openLocPanel() { LP_COLLAPSED = false; renderLocPanel(); $('#locpanel').classList.add('flash'); setTimeout(() => $('#locpanel').classList.remove('flash'), 600); }
+function settleQuestBadge(l) {
+  const s = l.settle; const ready = G.quests.filter(q => q.status === 'active' && q.giverId === l.id && questReady(q)).length;
+  return ready ? ` <b class="pos">(${ready}✓)</b>` : (s.questDay !== day() || s.quests.length) ? ' •' : '';
+}
+
+/* ---------- modals ---------- */
+function openModal(html, cls) { const m = $('#modal'); m.className = 'show ' + (cls || ''); $('#modalbox').innerHTML = html; }
+function closeModal() { const m = $('#modal'); if (m) { m.className = ''; $('#modalbox').innerHTML = ''; } setTimeout(() => maybePerkModal(), 30); }
+let EVENT_CB = [];
+function openEvent(title, text, choices) {
+  EVENT_CB = choices.map(c => c[1]);
+  openModal(`<h2>${title}</h2><p>${text}</p><div class="acts col">${choices.map((c, i) => `<button class="btn" onclick="EVENT_CB[${i}]()">${c[0]}</button>`).join('')}</div>`);
+  renderAll();
+}
+let LOOT = null;
+function showLoot(loot, title, after) {
+  LOOT = { items: loot.items.slice(), caps: loot.caps || 0, after: after || null };
+  if (LOOT.caps) { G.p.caps += LOOT.caps; log(`Found ${LOOT.caps} caps.`, 'good'); }
+  renderLoot(title);
+}
+function renderLoot(title) {
+  if (!LOOT) return; if (title) LOOT.title = title;
+  openModal(`<h2>${esc(LOOT.title)}</h2>${LOOT.caps ? `<div class="pos">+${LOOT.caps} caps</div>` : ''}
+   <div class="lootlist">${LOOT.items.map((it, i) => `<div class="irow"><div class="ihead"><span style="color:${rarityColor(it)}">${esc(itemName(it))}${it.qty > 1 ? ' ×' + it.qty : ''}</span><button class="btn" onclick="takeLoot(${i})">Take</button></div><div class="small">${itemDesc(it)}</div></div>`).join('') || '<div class="muted">Nothing left.</div>'}</div>
+   <div class="small muted">Carrying ${round1(totalWeight())}/${carryCap()} kg</div>
+   <div class="acts"><button class="btn hot" onclick="takeLoot(-1)">Take all</button><button class="btn dim" onclick="leaveLoot()">Leave</button></div>`, 'loot');
+}
+function takeLoot(i) {
+  if (!LOOT) return;
+  const take = i < 0 ? LOOT.items.splice(0) : LOOT.items.splice(i, 1);
+  take.forEach(it => { addItem(it); log(`Picked up ${itemName(it)}${it.qty > 1 ? ' ×' + it.qty : ''}.`); });
+  if (!LOOT.items.length) return leaveLoot();
+  renderLoot(); renderHUD(); renderTab();
+}
+function leaveLoot() { const cb = LOOT && LOOT.after; LOOT = null; closeModal(); renderAll(); saveGame(true); if (cb) cb(); }
+
+function renderCombat() {
+  const c = G.combat; if (!c) return; const p = G.p, s = getStats(), w = weaponStats();
+  const tgt = curTarget();
+  const usable = p.inv.filter(i => ['med', 'chem', 'throw', 'food', 'drink'].includes(def(i).cat) || (['melee', 'ranged'].includes(def(i).cat) && !isEquipped(i)));
+  openModal(`<h2>⚔ COMBAT</h2>
+   <div class="enemies">${c.enemies.map((e, i) => `<div class="enemy${e.hp <= 0 ? ' dead' : ''}${e === tgt ? ' tgt' : ''}" onclick="setTarget(${i})"><b>${esc(e.name)}</b> <span class="muted small">lvl ${e.lvl}${e.boss ? ' · BOSS' : ''}${e.special ? ' · ' + e.special : ''}</span>${bar('HP', Math.max(0, e.hp), e.maxhp, 'hp', Math.max(0, e.hp) + '/' + e.maxhp)}${e.bleed ? '<span class="small neg">bleeding </span>' : ''}${e.burn ? '<span class="small neg">burning</span>' : ''}</div>`).join('')}</div>
+   <div class="you">${bar('YOU', p.hp, s.maxhp, 'hp', Math.round(p.hp) + '/' + s.maxhp)}<div class="small">${esc(w.name)} ${w.dmg[0]}-${w.dmg[1]}${w.ammo ? ` · ${D.ITEMS[w.ammo].name}: ${countItem(w.ammo)}` : ''} · Armor ${Math.round(s.armor)}${p.bleed > 0 ? ' · <span class="neg">bleeding</span>' : ''}</div></div>
+   <div class="acts"><button class="btn hot" onclick="playerAttack(false)">Attack${w.burst > 1 ? ' (burst)' : ''}</button><button class="btn" onclick="playerAttack(true)">Aimed ${w.melee ? 'strike' : 'shot'}</button>
+   <select id="cuse"><option value="">— use item —</option>${usable.map(i => `<option value="${i.uid}">${esc(itemName(i))}${i.qty > 1 ? ' ×' + i.qty : ''}</option>`).join('')}</select><button class="btn" onclick="const v=$('#cuse').value;if(v)combatUse(+v)">Use</button>
+   <button class="btn dim" onclick="fleeCombat()">Flee</button></div>
+   <div class="clog">${c.log.slice(0, 14).map(l => `<div class="${l.cls}">${esc(l.m)}</div>`).join('')}</div>`, 'combat');
+}
+function renderTrade() {
+  const T = TRADE; if (!T) return;
+  const mine = G.p.inv.filter(i => !isEquipped(i) && i.base !== 'package');
+  openModal(`<h2>⛁ Trading with ${esc(T.name)}</h2><div class="small">You: <b>${G.p.caps}</b> caps · Trader: <b>${T.ref.caps}</b> caps${T.fac ? ` · ${D.FACTIONS[T.fac].name} rep ${G.rep[T.fac]}` : ''} · Barter ${G.p.skills.barter}</div>
+  <div class="trade"><div><h4>Trader (buy)</h4>${T.stock.map((it, i) => `<div class="irow"><div class="ihead"><span style="color:${rarityColor(it)}" onclick="this.closest('.irow').classList.toggle('open')">${esc(itemName(it))}${it.qty > 1 ? ' ×' + it.qty : ''} <span class="muted small">ⓘ</span></span><button class="btn" onclick="tradeBuy(${i})">${buyPrice(it, T.fac)}c</button></div><div class="tdesc">${itemDesc(it)}</div></div>`).join('')}</div>
+  <div><h4>You (sell)</h4>${mine.map(it => `<div class="irow"><div class="ihead"><span style="color:${rarityColor(it)}" onclick="this.closest('.irow').classList.toggle('open')">${esc(itemName(it))}${it.qty > 1 ? ' ×' + it.qty : ''} <span class="muted small">ⓘ</span></span><button class="btn" onclick="tradeSell(${it.uid})">${sellPrice(it, T.fac)}c</button></div><div class="tdesc">${itemDesc(it)}</div></div>`).join('')}</div></div>
+  <div class="acts"><button class="btn" onclick="TRADE=null;closeModal();renderAll();saveGame(true)">Done</button></div>`, 'wide');
+}
+function openSettlementQuests(locId) {
+  const l = G.locs[locId]; const s = l.settle; if (!s) return;
+  if (G.rep[s.fac] < -30) return toast(`${D.FACTIONS[s.fac].name} won't give you work.`);
+  if (s.questDay !== day()) { s.questDay = day(); s.quests = genQuests(l); }
+  const ready = G.quests.filter(q => q.status === 'active' && q.giverId === locId);
+  openModal(`<h2>! Quest board — ${esc(s.name)}</h2>
+  ${ready.length ? '<h4>Your jobs here</h4>' + ready.map(q => `<div class="irow"><div class="ihead"><span class="qtxt">${esc(q.title)}</span>${questReady(q) ? `<button class="btn hot" onclick="turnInQuest('${q.id}')">Turn in</button>` : '<span class="muted small">in progress</span>'}</div></div>`).join('') : ''}
+  <h4>Available</h4>${s.quests.map((q, i) => `<div class="irow"><div class="ihead"><span class="qtxt">${esc(q.title)}</span><button class="btn" onclick="acceptQuest('${locId}',${i})">Accept</button></div><div class="small">${q.desc}</div><div class="small muted">Reward: ${q.caps} caps · ${q.xp} XP · +${q.rep} rep${q.item ? ' · bonus item' : ''}</div></div>`).join('') || '<div class="muted">No more work today. Come back tomorrow.</div>'}
+  <div class="acts"><button class="btn" onclick="closeModal();renderAll()">Close</button></div>`, 'wide');
+}
+function maybePerkModal(force) {
+  if (!G || G.dead || G.combat || G.travel || G.p.pendingPerks <= 0) return;
+  if (!force && $('#modal').classList.contains('show')) return;
+  const offers = perkOffers(); if (!offers.length) { G.p.pendingPerks = 0; return; }
+  openModal(`<h2>★ LEVEL ${G.p.level} — choose a perk</h2><div class="acts col">${offers.map(p => `<button class="btn perk" onclick="takePerk('${p[0]}')"><b>${p[1]}</b><br><span class="small">${p[2]}</span></button>`).join('')}</div><p class="small muted">You also got +2 skill points (Skills tab).</p>`);
+}
+function showDeath(cause) {
+  openModal(`<h2 class="neg">☠ YOU DIED</h2><p>Killed by ${esc(cause)} on ${timeStr()}.</p><p class="small">Level ${G.p.level} · ${G.stats.km.toFixed(1)} km travelled · ${G.stats.kills} kills · ${G.stats.quests} quests</p>
+  <div class="acts col"><button class="btn" onclick="if(loadGame()){bootGame();toast('Last save loaded')}else showStart()">↺ Load last save</button><button class="btn" onclick="showStart()">☢ New game</button></div>`, 'death');
+}
+function showHelp() {
+  openModal(`<h2>How to play</h2><ul class="small">
+  <li><b>Travel:</b> click the map or a marker → "Travel here". Walking costs time, food, water and fatigue. Random encounters happen on the road — more at night, far from home, and inside danger zones.</li>
+  <li><b>Zones:</b> <span class="z-rad">yellow = radiation</span>, <span class="z-anomaly">purple = anomalies (artifacts!)</span>, <span class="z-mutant">red = mutant nests</span>, <span class="z-raider">orange = raider turf</span>.</li>
+  <li><b>Locations</b> are real places from OpenStreetMap. Loot depends on the type: pharmacies → meds, police → guns, gas stations → fuel & junk, military → weapons & armor… "?" markers are unidentified until you get close.</li>
+  <li><b>⌂ Settlements</b> have traders, quest boards, workbenches and safe beds.</li>
+  <li><b>Scrap</b> junk into components and <b>craft</b> weapons, ammo, armor, meds and upgrades. Find schematics for advanced gear.</li>
+  <li><b>Level up</b> to raise 7 skills and pick perks. Equip up to 2 artifacts — but watch their radiation.</li>
+  <li>Keep food, water and radiation in check. RAD ≥ 100 is lethal over time. Anti-Rad, RadAway and vodka help.</li>
+  <li>Progress autosaves in your browser. Death lets you reload your last autosave.</li></ul>
+  <div class="acts"><button class="btn" onclick="closeModal()">Got it</button></div>`);
+}
+
+/* ---------- start screen ---------- */
+function showStart() {
+  stopTravel(); G = null; closeModal();
+  $('#start').style.display = 'flex'; $('#game').style.display = 'none';
+  $('#continueBtn').style.display = localStorage.getItem(SAVE_KEY) ? 'inline-block' : 'none';
+}
+let START_POS = { lat: 59.4370, lng: 24.7536, name: 'Tallinn, Estonia' };
+function setStartPos(lat, lng, name) { START_POS = { lat: +lat, lng: +lng, name }; $('#startpos').textContent = `Start: ${name} (${(+lat).toFixed(4)}, ${(+lng).toFixed(4)})`; }
+async function searchCity() {
+  const q = $('#citySearch').value.trim(); if (!q) return; const out = $('#cityResults'); out.innerHTML = '<div class="muted">Searching…</div>';
+  let res = [];
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=en&q=' + encodeURIComponent(q), { headers: { Accept: 'application/json' } });
+    if (!r.ok) throw new Error(r.status); res = (await r.json()).map(x => ({ lat: x.lat, lng: x.lon, name: x.display_name }));
+  } catch (e) {
+    try { const r = await fetch('https://photon.komoot.io/api/?limit=6&q=' + encodeURIComponent(q)); const j = await r.json(); res = j.features.map(f => ({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], name: [f.properties.name, f.properties.city, f.properties.country].filter(Boolean).join(', ') })); }
+    catch (e2) { out.innerHTML = '<div class="neg">Search failed (offline?). Using default.</div>'; return; }
+  }
+  window._cityRes = res;
+  out.innerHTML = res.map((x, i) => `<div class="cityopt" onclick="setStartPos(_cityRes[${i}].lat,_cityRes[${i}].lng,_cityRes[${i}].name.split(',').slice(0,2).join(','));$('#cityResults').innerHTML=''">${esc(x.name)}</div>`).join('') || '<div class="muted">No results.</div>';
+}
+function useGeo() {
+  if (!window.isSecureContext) { $('#startpos').innerHTML = '<span class="warn">📍 Location needs a secure (https://) page — on iPhone open the hosted https version. For now, search your city instead.</span>'; $('#citySearch').focus(); return; }
+  if (!navigator.geolocation) return toast('Geolocation not available.');
+  $('#startpos').textContent = 'Locating…';
+  navigator.geolocation.getCurrentPosition(p => setStartPos(p.coords.latitude, p.coords.longitude, 'Your location'), e => {
+    setStartPos(START_POS.lat, START_POS.lng, START_POS.name);
+    const msg = e.code === 1 ? 'Location permission denied. On iPhone: Settings › Privacy & Security › Location Services › Safari Websites → While Using. Or search your city.' : 'Could not get your location (timeout). Try again or search your city.';
+    $('#startpos').innerHTML += '<br><span class="warn">' + msg + '</span>';
+  }, { timeout: 12000, maximumAge: 600000, enableHighAccuracy: false });
+}
+function startNew() {
+  const name = $('#pname').value.trim() || 'Stalker';
+  newGame(name, START_POS.lat, START_POS.lng, START_POS.name);
+  bootGame(); showHelpFirst();
+}
+function showHelpFirst() { setTimeout(showHelp, 300); }
+function bootGame() {
+  $('#start').style.display = 'none'; $('#game').style.display = 'flex';
+  closeModal(); closeSheet();
+  initMap(); genZonesAround(G.p.lat, G.p.lng); revealNear(); renderWorld(); setTab(TAB, true); if (isMobile()) closeSheet(); renderAll();
+  setTimeout(() => map.invalidateSize(), 50);
+  ensurePOIs();
+}
+window.addEventListener('load', () => {
+  if (typeof L === 'undefined') { document.body.innerHTML = '<div style="color:#5dff6a;padding:30px;font-family:monospace">Failed to load Leaflet from the CDN. Check your internet connection and reload.</div>'; return; }
+  setStartPos(START_POS.lat, START_POS.lng, START_POS.name);
+  $('#citySearch').addEventListener('keydown', e => { if (e.key === 'Enter') searchCity(); });
+  showStart();
+});
+window.addEventListener('beforeunload', () => saveGame(true));
+// iOS doesn't reliably fire beforeunload: save when the app is backgrounded
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveGame(true); });
+window.addEventListener('pagehide', () => saveGame(true));
+// block pinch-zoom of the whole page on iOS (map still pinch-zooms itself)
+['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => { if (!e.target.closest || !e.target.closest('#map')) e.preventDefault(); }, { passive: false }));
+let _rsz = null;
+function onResize() { clearTimeout(_rsz); _rsz = setTimeout(() => { if (map) map.invalidateSize(); if (!isMobile()) closeSheet(); }, 120); }
+window.addEventListener('resize', onResize); window.addEventListener('orientationchange', onResize);
+// PWA: service worker only over http(s) (never on file:// or in the single-file build)
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.WL_SINGLE) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed', e)));
+}
+
+</script>
+</body>
+</html>
